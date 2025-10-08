@@ -1,0 +1,52 @@
+{
+  "runway": {
+    "gen4_turbo": {
+      "model": "gen4_turbo",
+      "supports_text": false,
+      "supports_image": false,
+      "supports_both": false,
+      "actual_parameters": [],
+      "error": null
+    },
+    "gen4_aleph": {
+      "model": "gen4_aleph",
+      "supports_text": false,
+      "supports_image": false,
+      "supports_both": false,
+      "actual_parameters": [],
+      "error": null
+    },
+    "act_two": {
+      "model": "act_two",
+      "supports_text": false,
+      "supports_image": false,
+      "supports_both": false,
+      "actual_parameters": [],
+      "error": null
+    },
+    "veo3": {
+      "model": "veo3",
+      "supports_text": false,
+      "supports_image": false,
+      "supports_both": false,
+      "actual_parameters": [],
+      "error": null
+    }
+  },
+  "luma": {
+    "status": "ready_to_test",
+    "supports_text_and_image": true,
+    "payload_structure": [
+      "prompt",
+      "keyframes"
+    ]
+  },
+  "pika": {
+    "status": "skipped",
+    "reason": "No API key provided"
+  },
+  "wavespeed": {
+    "status": "skipped",
+    "reason": "No API key provided"
+  }
+}
