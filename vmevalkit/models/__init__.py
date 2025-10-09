@@ -1,5 +1,8 @@
-"""Video generation models for VMEvalKit."""
+"""
+Video generation models for VMEvalKit.
+"""
 
-from .base import BaseVideoModel
+from .luma_inference import LumaInference, generate_video as luma_generate
+from .veo_inference import VeoService
 
-__all__ = ["BaseVideoModel"]
+__all__ = ["LumaInference", "luma_generate", "VeoService"]

@@ -1,22 +1,26 @@
 """
-VMEvalKit - A comprehensive evaluation framework for video reasoning models.
+VMEvalKit - A framework for video generation with text+image inputs.
 
-This framework evaluates video generation models on reasoning tasks requiring
-both text prompts and image inputs to generate solution videos.
+This framework enables video generation models to process both text prompts 
+and image inputs to generate videos.
 """
 
 __version__ = "0.1.0"
 
-from .core.evaluator import VMEvaluator
-from .core.task_loader import TaskLoader
-from .core.model_registry import ModelRegistry
-from .inference import InferenceRunner, BatchInferenceRunner
+# Import runner functionality
+from .runner import run_inference, InferenceRunner
+
+# Import models
+from .models import LumaInference, luma_generate
+
+# Loader and task system removed as unused
 
 __all__ = [
-    "VMEvaluator",
-    "TaskLoader", 
-    "ModelRegistry",
+    # Runner
+    "run_inference",
     "InferenceRunner",
-    "BatchInferenceRunner",
+    # Models
+    "LumaInference",
+    "luma_generate",
     "__version__"
 ]

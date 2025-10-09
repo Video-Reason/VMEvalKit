@@ -19,14 +19,14 @@ from datetime import datetime
 
 # Import from KnowWhat submodule
 import sys
-sys.path.append(str(Path(__file__).parent.parent.parent / "submodules" / "KnowWhat"))
+sys.path.append(str(Path(__file__).parent.parent.parent.parent / "submodules" / "KnowWhat"))
 from core.maze_generator import (
     SHAPES, get_sample_mazes, init_random_start_end,
     WALL, PATH, POS, END
 )
 
 # Import from maze-dataset submodule
-sys.path.append(str(Path(__file__).parent.parent.parent / "submodules" / "maze-dataset"))
+sys.path.append(str(Path(__file__).parent.parent.parent.parent / "submodules" / "maze-dataset"))
 from maze_dataset.maze.lattice_maze import LatticeMaze, TargetedLatticeMaze, SolvedMaze
 from maze_dataset.plotting import MazePlot
 from maze_dataset.generation import LatticeMazeGenerators
