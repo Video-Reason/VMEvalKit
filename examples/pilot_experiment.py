@@ -168,20 +168,18 @@ def get_pilot_tasks(dataset_path: Path) -> Dict[str, List[Dict[str, Any]]]:
 # ========================================
 
 def create_output_structure(base_dir: Path) -> None:
-    """Create organized output directory structure."""
+    """Create organized output directory structure for the new system."""
     base_dir.mkdir(exist_ok=True, parents=True)
     
-    # Create subdirectories for each model
-    for model_name in PILOT_MODELS.keys():
-        model_dir = base_dir / model_name
-        model_dir.mkdir(exist_ok=True, parents=True)
-        
-        # Create subdirectories for each category
-        for category in TASK_CATEGORIES:
-            (model_dir / category).mkdir(exist_ok=True, parents=True)
-    
-    # Create logs directory (renamed from results)
+    # With the new structured output, each inference creates its own folder
+    # We only need the logs directory at the top level
     (base_dir / "logs").mkdir(exist_ok=True, parents=True)
+    
+    print(f"📁 Output directory structure ready at: {base_dir}")
+    print(f"   Each inference will create a self-contained folder with:")
+    print(f"   - video/: Generated video file")
+    print(f"   - question/: Input images and prompt")
+    print(f"   - metadata.json: Complete inference metadata")
 
 
 def _ensure_real_png(image_path: str) -> bool:
@@ -215,16 +213,18 @@ def run_single_inference(
     task: Dict[str, Any],
     category: str,
     output_dir: Path,
+    runner: Optional[InferenceRunner] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
-    Run inference for a single task-model pair.
+    Run inference for a single task-model pair using the new structured output system.
     
     Args:
         model_name: Name of the model to use
         task: Task dictionary from dataset
         category: Task category
         output_dir: Base output directory
+        runner: Optional InferenceRunner instance (created if not provided)
         **kwargs: Additional model parameters
         
     Returns:
@@ -234,12 +234,8 @@ def run_single_inference(
     image_path = task["first_image_path"]
     prompt = task["prompt"]
     
-    # Create output filename
-    model_safe = model_name.replace("/", "_").replace("-", "_")
-    output_filename = f"{task_id}_{model_safe}.mp4"
-    
-    # Model-specific output directory
-    model_output_dir = output_dir / model_name / category
+    # Create a unique run_id for this inference
+    run_id = f"{model_name}_{task_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     
     print(f"\n  🎬 Generating: {task_id} with {model_name}")
     print(f"     Image: {image_path}")
@@ -255,13 +251,17 @@ def run_single_inference(
         if not _ensure_real_png(image_path):
             raise ValueError(f"Input image invalid or corrupt: {image_path}")
         
-        # Run inference
-        result = run_inference(
+        # Use InferenceRunner for structured output
+        if runner is None:
+            runner = InferenceRunner(output_dir=str(output_dir))
+        
+        # Run inference with complete question data for structured output
+        result = runner.run(
             model_name=model_name,
             image_path=image_path,
             text_prompt=prompt,
-            output_dir=str(model_output_dir),
-            output_filename=output_filename,
+            run_id=run_id,
+            question_data=task,  # Pass full task data for structured output
             **kwargs
         )
         
@@ -273,10 +273,13 @@ def run_single_inference(
             "model_family": PILOT_MODELS[model_name],
             "start_time": start_time.isoformat(),
             "end_time": datetime.now().isoformat(),
-            "success": True
+            "success": result.get("status") != "failed"
         })
         
-        print(f"     ✅ Success! Video saved to: {result.get('video_path', 'N/A')}")
+        if result.get("status") != "failed":
+            print(f"     ✅ Success! Structured output saved to: {result.get('inference_dir', 'N/A')}")
+        else:
+            print(f"     ❌ Failed: {result.get('error', 'Unknown error')}")
         
         return result
         
@@ -373,6 +376,9 @@ def run_pilot_experiment(
     print(f"📋 Created {len(inference_jobs)} inference jobs")
     print("🚀 Starting parallel execution...\n")
     
+    # Create a shared InferenceRunner instance
+    runner = InferenceRunner(output_dir=str(output_dir))
+    
     # Function to process a single job
     def process_job(job: Dict[str, Any]) -> Dict[str, Any]:
         model_name = job["model_name"]
@@ -380,13 +386,11 @@ def run_pilot_experiment(
         category = job["category"]
         task_id = task["id"]
         
-        # Check if output already exists
-        model_safe = model_name.replace("/", "_").replace("-", "_")
-        output_filename = f"{task_id}_{model_safe}.mp4"
-        model_output_dir = output_dir / model_name / category
-        output_path = model_output_dir / output_filename
+        # With new structure, check if inference folder already exists
+        run_id = f"{model_name}_{task_id}_*"
+        existing_dirs = list(output_dir.glob(run_id))
         
-        if skip_existing and output_path.exists():
+        if skip_existing and existing_dirs:
             with stats_lock:
                 statistics["skipped"] += 1
                 statistics["by_model"][model_name]["skipped"] += 1
@@ -394,15 +398,17 @@ def run_pilot_experiment(
             return {
                 "task_id": task_id,
                 "model_name": model_name,
-                "status": "skipped"
+                "status": "skipped",
+                "existing_dir": str(existing_dirs[0])
             }
         
-        # Run inference
+        # Run inference with structured output
         result = run_single_inference(
             model_name=model_name,
             task=task,
             category=category,
-            output_dir=output_dir
+            output_dir=output_dir,
+            runner=runner  # Pass the shared runner instance
         )
         
         # Update statistics and results (thread-safe)

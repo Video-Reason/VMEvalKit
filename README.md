@@ -24,16 +24,23 @@ pip install -e .
 ## Quick Start
 
 ```python
-from vmevalkit import run_inference
+from vmevalkit.runner.inference import InferenceRunner
+
+# Initialize runner with structured output
+runner = InferenceRunner(output_dir="output")
 
 # Generate video solution
-result = run_inference(
+result = runner.run(
     model_name="luma-ray-2",
     image_path="data/questions/maze.png",
     text_prompt="Solve this maze from start to finish"
 )
 
-print(f"Video: {result['video_path']}")
+print(f"Video saved to: {result['inference_dir']}")
+# Each inference creates a self-contained folder with:
+# - video/: Generated video file
+# - question/: Input images and prompt  
+# - metadata.json: Complete inference metadata
 ```
 
 ## Supported Models
@@ -96,15 +103,37 @@ VMEvalKit/
 │   ├── tasks/          # Task definitions
 │   └── utils/          # Utilities
 ├── data/
-│   ├── questions/      # Dataset questions & images
-│   └── outputs/        # Model-generated videos
+│   └── questions/      # Dataset questions & images
+├── output/             # Structured inference outputs
+│   └── <inference_id>/ # Self-contained folders per inference
+│       ├── video/      # Generated video file
+│       ├── question/   # Input images and prompt
+│       └── metadata.json # Complete inference metadata
 ├── examples/           # Example scripts
 └── tests/              # Unit tests
 ```
 
+## Structured Output System
+
+Each inference creates a **self-contained folder** with all relevant data:
+
+```
+output/<model>_<question_id>_<timestamp>/
+├── video/
+│   └── generated_video.mp4    # Output video
+├── question/
+│   ├── first_frame.png        # Input image (sent to model)
+│   ├── final_frame.png        # Reference image (not sent)
+│   ├── prompt.txt             # Text prompt used
+│   └── question_metadata.json # Full question data
+└── metadata.json              # Complete inference metadata
+```
+
+This structure ensures reproducibility and makes batch analysis easy.
+
 ## Examples
 
-See `examples/simple_inference.py` for more usage patterns.
+See `examples/pilot_experiment.py` for parallel inference across multiple models.
 
 ## Submodules
 

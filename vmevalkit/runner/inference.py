@@ -18,6 +18,7 @@ Organized by families for easy scaling and management.
 
 import os
 import asyncio
+import shutil
 from pathlib import Path
 from typing import Dict, Any, Optional, Union
 from datetime import datetime
@@ -810,6 +811,7 @@ def run_inference(
     text_prompt: str,
     output_dir: str = "./data/outputs",
     api_key: Optional[str] = None,
+    question_data: Optional[Dict[str, Any]] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -821,6 +823,7 @@ def run_inference(
         text_prompt: Text instructions for video generation
         output_dir: Directory to save outputs
         api_key: Optional API key (uses env var if not provided)
+        question_data: Optional question metadata including final_image_path
         **kwargs: Additional model-specific parameters
         
     Returns:
@@ -835,10 +838,17 @@ def run_inference(
     model_config = AVAILABLE_MODELS[model_name]
     model_class = model_config["class"]
     
+    # Create structured output directory for this inference
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    inference_id = kwargs.get('inference_id', f"{model_name}_{timestamp}")
+    inference_dir = Path(output_dir) / inference_id
+    video_dir = inference_dir / "video"
+    video_dir.mkdir(parents=True, exist_ok=True)
+    
     # Create model instance with only constructor-safe parameters
     init_kwargs = {
         "model": model_config["model"],
-        "output_dir": output_dir,
+        "output_dir": str(video_dir),  # Save video to the video subdirectory
     }
     if api_key is not None:
         init_kwargs["api_key"] = api_key
@@ -846,12 +856,23 @@ def run_inference(
     model = model_class(**init_kwargs)
     
     # Run inference, forwarding runtime options (e.g., output_filename) to generate
-    return model.generate(image_path, text_prompt, **kwargs)
+    result = model.generate(image_path, text_prompt, **kwargs)
+    
+    # Add structured output directory to result
+    result["inference_dir"] = str(inference_dir)
+    result["question_data"] = question_data
+    
+    return result
 
 
 class InferenceRunner:
     """
-    Simple inference runner for managing video generation.
+    Enhanced inference runner for managing video generation with structured output folders.
+    
+    Each inference creates a self-contained folder with:
+    - video/: Generated video file(s)
+    - question/: Input images and prompt
+    - metadata.json: Complete inference metadata
     """
     
     def __init__(self, output_dir: str = "./data/outputs"):
@@ -874,16 +895,18 @@ class InferenceRunner:
         image_path: Union[str, Path],
         text_prompt: str,
         run_id: Optional[str] = None,
+        question_data: Optional[Dict[str, Any]] = None,
         **kwargs
     ) -> Dict[str, Any]:
         """
-        Run inference and log results.
+        Run inference and create structured output folder.
         
         Args:
             model_name: Model to use
-            image_path: Input image
+            image_path: Input image (first frame)
             text_prompt: Text instructions
             run_id: Optional run identifier
+            question_data: Optional question metadata including final_image_path
             **kwargs: Additional parameters
             
         Returns:
@@ -893,24 +916,43 @@ class InferenceRunner:
         
         # Generate run ID if not provided
         if not run_id:
-            run_id = f"{model_name}_{start_time.strftime('%Y%m%d_%H%M%S')}"
+            question_id = question_data.get('id', 'unknown') if question_data else 'unknown'
+            run_id = f"{model_name}_{question_id}_{start_time.strftime('%Y%m%d_%H%M%S')}"
+        
+        # Create structured output directory
+        inference_dir = self.output_dir / run_id
+        inference_dir.mkdir(parents=True, exist_ok=True)
         
         try:
-            # Run inference
+            # Run inference with inference_id for structured output
             result = run_inference(
                 model_name=model_name,
                 image_path=image_path,
                 text_prompt=text_prompt,
                 output_dir=self.output_dir,
-                **kwargs
+                api_key=kwargs.get('api_key'),
+                question_data=question_data,
+                inference_id=run_id,
+                **{k: v for k, v in kwargs.items() if k != 'api_key'}
             )
             
             # Add metadata
             result["run_id"] = run_id
             result["timestamp"] = start_time.isoformat()
             
+            # Create question folder and copy images
+            self._setup_question_folder(inference_dir, image_path, text_prompt, question_data)
+            
+            # Save metadata
+            self._save_metadata(inference_dir, result, question_data)
+            
             # Log the run
             self._log_run(run_id, result)
+            
+            print(f"\n✅ Inference complete! Output saved to: {inference_dir}")
+            print(f"   - Video: {inference_dir}/video/")
+            print(f"   - Question data: {inference_dir}/question/")
+            print(f"   - Metadata: {inference_dir}/metadata.json")
             
             return result
             
@@ -921,10 +963,125 @@ class InferenceRunner:
                 "status": "failed",
                 "error": str(e),
                 "model": model_name,
-                "timestamp": start_time.isoformat()
+                "timestamp": start_time.isoformat(),
+                "inference_dir": str(inference_dir)
             }
+            
+            # Save error metadata
+            self._save_metadata(inference_dir, error_result, question_data)
             self._log_run(run_id, error_result)
+            
+            print(f"\n❌ Inference failed: {e}")
+            print(f"   Error details saved to: {inference_dir}/metadata.json")
+            
             return error_result
+    
+    def _setup_question_folder(self, inference_dir: Path, first_image: Union[str, Path], 
+                               prompt: str, question_data: Optional[Dict[str, Any]]):
+        """
+        Create question folder with input images and prompt.
+        
+        Args:
+            inference_dir: Directory for this inference
+            first_image: Path to first image (input to model)
+            prompt: Text prompt
+            question_data: Optional question metadata
+        """
+        question_dir = inference_dir / "question"
+        question_dir.mkdir(exist_ok=True)
+        
+        # Copy first image
+        first_image_path = Path(first_image)
+        if first_image_path.exists():
+            dest_first = question_dir / f"first_frame{first_image_path.suffix}"
+            shutil.copy2(first_image_path, dest_first)
+        
+        # Copy final image if available
+        if question_data and 'final_image_path' in question_data:
+            final_image_path = Path(question_data['final_image_path'])
+            if final_image_path.exists():
+                dest_final = question_dir / f"final_frame{final_image_path.suffix}"
+                shutil.copy2(final_image_path, dest_final)
+        
+        # Save prompt to text file
+        prompt_file = question_dir / "prompt.txt"
+        with open(prompt_file, 'w') as f:
+            f.write(prompt)
+        
+        # Save question metadata if available
+        if question_data:
+            question_metadata_file = question_dir / "question_metadata.json"
+            with open(question_metadata_file, 'w') as f:
+                json.dump(question_data, f, indent=2)
+    
+    def _save_metadata(self, inference_dir: Path, result: Dict[str, Any], 
+                      question_data: Optional[Dict[str, Any]]):
+        """
+        Save complete metadata for the inference.
+        
+        Args:
+            inference_dir: Directory for this inference
+            result: Inference result
+            question_data: Optional question metadata
+        """
+        metadata = {
+            "inference": {
+                "run_id": result.get("run_id"),
+                "model": result.get("model"),
+                "timestamp": result.get("timestamp"),
+                "status": result.get("status", "unknown"),
+                "duration_seconds": result.get("duration_seconds"),
+                "error": result.get("error")
+            },
+            "input": {
+                "prompt": result.get("prompt"),
+                "image_path": result.get("image_path"),
+                "question_id": question_data.get("id") if question_data else None,
+                "task_category": question_data.get("task_category") if question_data else None
+            },
+            "output": {
+                "video_path": result.get("video_path"),
+                "video_url": result.get("video_url"),
+                "generation_id": result.get("generation_id")
+            },
+            "paths": {
+                "inference_dir": str(inference_dir),
+                "video_dir": str(inference_dir / "video"),
+                "question_dir": str(inference_dir / "question")
+            },
+            "question_data": question_data
+        }
+        
+        # Remove None values for cleaner output
+        metadata = self._remove_none_values(metadata)
+        
+        metadata_file = inference_dir / "metadata.json"
+        with open(metadata_file, 'w') as f:
+            json.dump(metadata, f, indent=2)
+    
+    def _remove_none_values(self, d: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Recursively remove None values from a dictionary.
+        
+        Args:
+            d: Dictionary to clean
+            
+        Returns:
+            Dictionary without None values
+        """
+        if not isinstance(d, dict):
+            return d
+        
+        clean = {}
+        for key, value in d.items():
+            if value is not None:
+                if isinstance(value, dict):
+                    nested = self._remove_none_values(value)
+                    if nested:  # Only include non-empty dicts
+                        clean[key] = nested
+                else:
+                    clean[key] = value
+        return clean
     
     def list_models(self) -> Dict[str, str]:
         """List available models and their descriptions."""
@@ -959,10 +1116,18 @@ class InferenceRunner:
     
     def _log_run(self, run_id: str, result: Dict[str, Any]):
         """Log a run to the log file."""
-        self.runs.append({
+        # Create a clean copy for logging (avoid circular references)
+        log_entry = {
             "run_id": run_id,
-            **result
-        })
+            "model": result.get("model"),
+            "status": result.get("status"),
+            "timestamp": result.get("timestamp"),
+            "inference_dir": result.get("inference_dir"),
+            "video_path": result.get("video_path"),
+            "error": result.get("error")
+        }
+        
+        self.runs.append(log_entry)
         
         with open(self.log_file, 'w') as f:
             json.dump(self.runs, f, indent=2)
