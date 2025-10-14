@@ -437,13 +437,13 @@ def generate_task_images(task_data: Dict[str, Any], output_dir: str, task_id: st
     matrix = task_data["matrix"]
     config_name = task_data["config_name"]
     
-    # Create output directory
-    image_dir = os.path.join(output_dir, "data", "questions", "generated_raven")
-    os.makedirs(image_dir, exist_ok=True)
+    # Create temporary files that will be moved to per-question folders
+    import tempfile
+    temp_dir = tempfile.mkdtemp()
     
     # Image paths
-    first_image_path = os.path.join(image_dir, f"{task_id}_first.png")
-    final_image_path = os.path.join(image_dir, f"{task_id}_final.png")
+    first_image_path = os.path.join(temp_dir, f"{task_id}_first.png")
+    final_image_path = os.path.join(temp_dir, f"{task_id}_final.png")
     
     # Generate incomplete and complete matrices based on configuration
     config_name = task_data["config_name"]
@@ -471,7 +471,8 @@ def generate_task_images(task_data: Dict[str, Any], output_dir: str, task_id: st
         generate_rpm_image(matrix[:-1] if len(matrix) > 1 else matrix, first_image_path, incomplete=True)
         generate_rpm_image(matrix, final_image_path, incomplete=False)
     
-    return f"data/questions/generated_raven/{task_id}_first.png", f"data/questions/generated_raven/{task_id}_final.png"
+    # Return temp paths that will be moved by create_dataset.py
+    return first_image_path, final_image_path
 
 
 def generate_rpm_image(matrix_panels: List[np.ndarray], output_path: str, incomplete: bool = False):
@@ -665,16 +666,7 @@ def create_dataset(num_samples: int = 50) -> Dict[str, Any]:
         "pairs": pairs
     }
     
-    # Save dataset
-    base_dir = Path(__file__).parent.parent.parent.parent
-    dataset_dir = base_dir / "data" / "questions" / "raven_tasks"
-    dataset_dir.mkdir(parents=True, exist_ok=True)
-    output_path = dataset_dir / "raven_tasks.json"
-    
-    with open(output_path, 'w') as f:
-        json.dump(dataset, f, indent=2)
-    
-    print(f"✅ Saved dataset: {output_path}")
+    # Don't save to intermediate folder anymore - will be handled by create_dataset.py
     print(f"📊 Dataset stats:")
     
     # Print statistics

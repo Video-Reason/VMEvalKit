@@ -412,21 +412,22 @@ def generate_task_images(task_data: Dict[str, Any], task_id: str, base_dir: str)
     first_view = task_data["first_view"]
     final_view = task_data["final_view"]
     
-    # Generate output paths
-    first_image_path = f"data/questions/generated_rotation/{task_id}_first.png"
-    final_image_path = f"data/questions/generated_rotation/{task_id}_final.png"
+    # Create temporary files that will be moved to per-question folders
+    import tempfile
+    temp_dir = tempfile.mkdtemp()
     
-    # Create output directory
-    output_dir = os.path.join(base_dir, "data/questions/generated_rotation")
-    os.makedirs(output_dir, exist_ok=True)
+    first_temp_path = os.path.join(temp_dir, f"{task_id}_first.png")
+    final_temp_path = os.path.join(temp_dir, f"{task_id}_final.png")
     
     # Generate first view image
-    first_full_path = os.path.join(base_dir, first_image_path)
-    _render_voxel_image(voxels, first_view[0], first_view[1], first_full_path)
+    _render_voxel_image(voxels, first_view[0], first_view[1], first_temp_path)
     
     # Generate final view image  
-    final_full_path = os.path.join(base_dir, final_image_path)
-    _render_voxel_image(voxels, final_view[0], final_view[1], final_full_path)
+    _render_voxel_image(voxels, final_view[0], final_view[1], final_temp_path)
+    
+    # Return temp paths that will be moved by create_dataset.py
+    first_image_path = first_temp_path
+    final_image_path = final_temp_path
     
     return first_image_path, final_image_path
 
@@ -614,16 +615,7 @@ def create_dataset(num_samples: int = 50) -> Dict[str, Any]:
         "pairs": pairs
     }
     
-    # Save dataset
-    base_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..')
-    dataset_dir = os.path.join(base_dir, "data/questions/rotation_tasks")
-    os.makedirs(dataset_dir, exist_ok=True)
-    output_path = os.path.join(dataset_dir, "rotation_tasks.json")
-    
-    with open(output_path, 'w') as f:
-        json.dump(dataset, f, indent=2)
-    
-    print(f"✅ Saved dataset: {output_path}")
+    # Don't save to intermediate folder anymore - will be handled by create_dataset.py
     return dataset
 
 

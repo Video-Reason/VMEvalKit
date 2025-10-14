@@ -423,17 +423,15 @@ def create_chess_task_pair(puzzle_data: Dict[str, Any], task_id: str) -> Dict[st
     
     prompt = random.choice(prompts)
     
-    # Set up file paths (matching maze format - PNG files)
-    base_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..')
-    first_image_path = f"data/questions/generated_chess/{task_id}_first.png"
-    final_image_path = f"data/questions/generated_chess/{task_id}_final.png"
+    # Create temporary files that will be moved to per-question folders
+    import tempfile
+    temp_dir = tempfile.mkdtemp()
+    
+    first_temp_path = os.path.join(temp_dir, f"{task_id}_first.png")
+    final_temp_path = os.path.join(temp_dir, f"{task_id}_final.png")
     
     # Generate first frame (initial position)
-    chess_dir = os.path.join(base_dir, "data", "questions", "generated_chess")
-    os.makedirs(chess_dir, exist_ok=True)
-    
-    first_full_path = os.path.join(base_dir, first_image_path)
-    generate_chess_board_png(puzzle_data["fen"], first_full_path)
+    generate_chess_board_png(puzzle_data["fen"], first_temp_path)
     
     # Generate final frame (after mate move)
     board = chess.Board(puzzle_data["fen"])
@@ -441,8 +439,11 @@ def create_chess_task_pair(puzzle_data: Dict[str, Any], task_id: str) -> Dict[st
     move = board.parse_san(mate_move)
     board.push(move)
     
-    final_full_path = os.path.join(base_dir, final_image_path)
-    generate_chess_board_png(board.fen(), final_full_path)
+    generate_chess_board_png(board.fen(), final_temp_path)
+    
+    # Paths will be updated when moved to per-question folders
+    first_image_path = first_temp_path
+    final_image_path = final_temp_path
     
     print(f"✅ Created chess task {task_id}: {puzzle_data['description']}")
     
@@ -508,20 +509,10 @@ def create_chess_dataset(num_samples: int = 100) -> Dict[str, Any]:
         "pairs": pairs
     }
     
-    # Save to data/questions/chess_tasks/ (matching maze location)
-    base_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..')
-    chess_tasks_dir = os.path.join(base_dir, "data", "questions", "chess_tasks")
-    os.makedirs(chess_tasks_dir, exist_ok=True)
-    output_path = os.path.join(base_dir, "data", "questions", "chess_tasks", "chess_tasks.json")
-    
-    with open(output_path, 'w') as f:
-        json.dump(dataset, f, indent=2)
-    
-    print(f"✅ Saved chess dataset: {output_path}")
+    # Don't save to intermediate folder anymore - will be handled by create_dataset.py
     print(f"🎯 Chess dataset created successfully!")
     print(f"   Total tasks: {len(pairs)}")
     print(f"   Images created: {len(pairs) * 2}")
-    print(f"   Dataset file: {output_path}")
     
     return dataset
 

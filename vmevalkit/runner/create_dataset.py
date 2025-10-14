@@ -2,7 +2,7 @@
 """
 VMEvalKit Dataset Creation Script
 
-Generates the first version of our comprehensive video reasoning evaluation dataset
+Directly generates the video reasoning evaluation dataset into per-question folder structure
 with 50 task pairs per domain, evenly distributed across all four reasoning domains:
 
 - Chess: Strategic thinking and tactical pattern recognition
@@ -19,39 +19,154 @@ import os
 import sys
 import json
 import random
+import argparse
+import shutil
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Tuple
 
 # Add the project root to Python path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-def create_vmeval_dataset_v2(pairs_per_domain: int = 50, random_seed: int = 42) -> Dict[str, Any]:
+def generate_domain_to_folders(domain_name: str, num_samples: int, 
+                              output_base: Path, random_seed: int) -> List[Dict[str, Any]]:
     """
-    Create VMEvalKit Dataset Version 2 with improved, clearer prompts.
+    Generate tasks for a specific domain directly into per-question folder structure.
+    
+    Args:
+        domain_name: Name of the domain (chess, maze, raven, rotation)
+        num_samples: Number of task pairs to generate
+        output_base: Base output directory for questions
+        random_seed: Random seed for reproducible generation
+        
+    Returns:
+        List of task pair metadata dictionaries
+    """
+    
+    # Create domain-specific task folder
+    domain_dir = output_base / f"{domain_name}_task"
+    domain_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Set seed for this domain generation
+    random.seed(random_seed + hash(domain_name))
+    
+    generated_pairs = []
+    
+    try:
+        if domain_name == 'chess':
+            print(f"♟️  Generating {num_samples} Chess Tasks...")
+            from vmevalkit.tasks.chess_task import create_chess_dataset
+            dataset = create_chess_dataset(num_samples=num_samples)
+            pairs = dataset['pairs']
+            
+        elif domain_name == 'maze':
+            print(f"🌀 Generating {num_samples} Maze Tasks...")
+            from vmevalkit.tasks.maze_task import create_combined_dataset
+            # Split maze allocation between KnowWhat and Irregular (40/60)
+            knowwhat_count = max(1, num_samples * 2 // 5)  # ~40%
+            irregular_count = num_samples - knowwhat_count   # ~60%
+            maze_dataset = create_combined_dataset(
+                knowwhat_samples=knowwhat_count,
+                irregular_samples=irregular_count
+            )
+            pairs = [dict(pair.__dict__) for pair in maze_dataset.pairs]
+        
+        elif domain_name == 'raven':
+            print(f"🧩 Generating {num_samples} RAVEN Tasks...")
+            from vmevalkit.tasks.raven_task.raven_reasoning import create_dataset as create_raven_dataset
+            dataset = create_raven_dataset(num_samples=num_samples)
+            pairs = dataset['pairs']
+            
+        elif domain_name == 'rotation':
+            print(f"🔄 Generating {num_samples} Rotation Tasks...")
+            from vmevalkit.tasks.rotation_task.rotation_reasoning import create_dataset as create_rotation_dataset
+            dataset = create_rotation_dataset(num_samples=num_samples)
+            pairs = dataset['pairs']
+            
+        else:
+            raise ValueError(f"Unknown domain: {domain_name}")
+        
+        # Now write each pair directly to its folder
+        base_dir = Path(__file__).parent.parent.parent
+        
+        for idx, pair in enumerate(pairs):
+            # Create unique ID
+            pair_id = pair.get("id") or f"{domain_name}_{idx:04d}"
+            pair['id'] = pair_id
+            pair['domain'] = domain_name
+            
+            # Create question directory
+            q_dir = domain_dir / pair_id
+            q_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Copy images with standardized names
+            first_rel = pair.get("first_image_path")
+            final_rel = pair.get("final_image_path")
+            
+            if first_rel:
+                src_first = base_dir / first_rel
+                dst_first = q_dir / "first_frame.png"
+                if src_first.exists():
+                    shutil.copyfile(src_first, dst_first)
+                    # Update path to relative from questions folder
+                    pair['first_image_path'] = str(Path(domain_name + "_task") / pair_id / "first_frame.png")
+                    
+            if final_rel:
+                src_final = base_dir / final_rel
+                dst_final = q_dir / "final_frame.png"
+                if src_final.exists():
+                    shutil.copyfile(src_final, dst_final)
+                    # Update path to relative from questions folder
+                    pair['final_image_path'] = str(Path(domain_name + "_task") / pair_id / "final_frame.png")
+            
+            # Write prompt
+            prompt_text = pair.get("prompt", "")
+            (q_dir / "prompt.txt").write_text(prompt_text)
+            
+            # Write metadata
+            metadata_path = q_dir / "question_metadata.json"
+            with open(metadata_path, 'w') as f:
+                json.dump(pair, f, indent=2, default=str)
+            
+            generated_pairs.append(pair)
+        
+        print(f"   ✅ Generated {len(generated_pairs)} {domain_name} task pairs in {domain_dir}\n")
+        
+    except Exception as e:
+        print(f"   ❌ {domain_name.title()} generation failed: {e}\n")
+        import traceback
+        traceback.print_exc()
+    
+    return generated_pairs
+
+def create_vmeval_dataset_direct(pairs_per_domain: int = 50, random_seed: int = 42) -> Tuple[Dict[str, Any], str]:
+    """
+    Create VMEvalKit Dataset directly into per-question folder structure.
     
     Args:
         pairs_per_domain: Number of task pairs to generate per domain (default: 50)
         random_seed: Random seed for reproducible generation (default: 42)
         
     Returns:
-        Combined dataset dictionary
+        Tuple of (dataset dictionary, path to questions directory)
     """
     
     total_pairs = pairs_per_domain * 4
     
     print("=" * 70)
-    print("🚀 VMEvalKit Dataset Creation v1.0")
+    print("🚀 VMEvalKit Dataset Creation v2.0 - Direct Folder Generation")
     print(f"🎯 Total target: {total_pairs} task pairs across 4 domains")
     print("=" * 70)
     
-    # Set random seed for reproducible generation
-    random.seed(random_seed)
+    # Setup output directory
+    base_dir = Path(__file__).parent.parent.parent
+    output_base = base_dir / "data" / "questions"
+    output_base.mkdir(parents=True, exist_ok=True)
     
     # Equal allocation across domains
     allocation = {
         'chess': pairs_per_domain,
-        'maze': pairs_per_domain, 
+        'maze': pairs_per_domain,
         'raven': pairs_per_domain,
         'rotation': pairs_per_domain
     }
@@ -62,90 +177,21 @@ def create_vmeval_dataset_v2(pairs_per_domain: int = 50, random_seed: int = 42) 
         print(f"   {domain.title():10}: {count:3d} task pairs")
     print()
     
-    # Generate each domain's dataset
+    # Generate each domain directly to folders
     all_pairs = []
     
-    def _ensure_domain_tag(pairs_list, domain_name):
-        """Add a 'domain' field to each task pair dict for robust aggregation."""
-        tagged = []
-        for pair in pairs_list:
-            item = dict(pair)
-            item['domain'] = domain_name
-            tagged.append(item)
-        return tagged
+    for domain_name, num_samples in allocation.items():
+        pairs = generate_domain_to_folders(domain_name, num_samples, output_base, random_seed)
+        all_pairs.extend(pairs)
     
-    try:
-        # 1. Chess Tasks - Strategic Reasoning
-        print("♟️  Generating Chess Tasks...")
-        from vmevalkit.tasks.chess_task import create_chess_dataset
-        chess_dataset = create_chess_dataset(num_samples=allocation['chess'])
-        chess_pairs = chess_dataset['pairs']
-        all_pairs.extend(_ensure_domain_tag(chess_pairs, 'chess'))
-        print(f"   ✅ Generated {len(chess_pairs)} chess task pairs\n")
-        
-    except Exception as e:
-        print(f"   ❌ Chess generation failed: {e}\n")
-        chess_pairs = []
-    
-    try:
-        # 2. Maze Tasks - Spatial Navigation  
-        print("🌀 Generating Maze Tasks...")
-        from vmevalkit.tasks.maze_task import create_combined_dataset
-        
-        # Split maze allocation between KnowWhat and Irregular (roughly 40/60)
-        maze_total = allocation['maze']
-        knowwhat_count = max(1, maze_total * 2 // 5)  # ~40%
-        irregular_count = maze_total - knowwhat_count   # ~60%
-        
-        maze_dataset = create_combined_dataset(
-            knowwhat_samples=knowwhat_count,
-            irregular_samples=irregular_count
-        )
-        maze_pairs = maze_dataset.pairs
-        # Convert dataclass instances to dicts and tag domain
-        maze_dicts = [dict(pair.__dict__) for pair in maze_pairs]
-        all_pairs.extend(_ensure_domain_tag(maze_dicts, 'maze'))
-        print(f"   ✅ Generated {len(maze_pairs)} maze task pairs\n")
-        
-    except Exception as e:
-        print(f"   ❌ Maze generation failed: {e}\n")
-        maze_pairs = []
-    
-    try:
-        # 3. RAVEN Tasks - Abstract Reasoning
-        print("🧩 Generating RAVEN Tasks...")
-        from vmevalkit.tasks.raven_task.raven_reasoning import create_dataset as create_raven_dataset
-        raven_dataset = create_raven_dataset(num_samples=allocation['raven'])
-        raven_pairs = raven_dataset['pairs']
-        all_pairs.extend(_ensure_domain_tag(raven_pairs, 'raven'))
-        print(f"   ✅ Generated {len(raven_pairs)} RAVEN task pairs\n")
-        
-    except Exception as e:
-        print(f"   ❌ RAVEN generation failed: {e}\n")
-        import traceback
-        traceback.print_exc()
-        raven_pairs = []
-    
-    try:
-        # 4. Rotation Tasks - 3D Mental Rotation
-        print("🔄 Generating Rotation Tasks...")
-        from vmevalkit.tasks.rotation_task.rotation_reasoning import create_dataset as create_rotation_dataset
-        rotation_dataset = create_rotation_dataset(num_samples=allocation['rotation'])
-        rotation_pairs = rotation_dataset['pairs']
-        all_pairs.extend(_ensure_domain_tag(rotation_pairs, 'rotation'))
-        print(f"   ✅ Generated {len(rotation_pairs)} rotation task pairs\n")
-        
-    except Exception as e:
-        print(f"   ❌ Rotation generation failed: {e}\n")
-        rotation_pairs = []
-    
-    # Shuffle all pairs for random ordering
+    # Shuffle all pairs for diversity
+    random.seed(random_seed)
     random.shuffle(all_pairs)
     
-    # Create master dataset
+    # Create master dataset from the generated folders
     dataset = {
         "name": "vmeval_dataset_v2",
-        "description": f"VMEvalKit video reasoning evaluation dataset v2.0 with improved prompts ({len(all_pairs)} task pairs)",
+        "description": f"VMEvalKit video reasoning evaluation dataset v2.0 ({len(all_pairs)} task pairs)",
         "version": "2.0.0",
         "total_pairs": len(all_pairs),
         "generation_info": {
@@ -155,21 +201,93 @@ def create_vmeval_dataset_v2(pairs_per_domain: int = 50, random_seed: int = 42) 
             "actual_pairs": len(all_pairs),
             "allocation": allocation,
             "domains": {
-                # Use explicit domain tagging for robust counts
                 "chess": {
-                    "count": len([p for p in all_pairs if p.get('domain') == 'chess']), 
+                    "count": len([p for p in all_pairs if p.get('domain') == 'chess']),
                     "description": "Strategic thinking and tactical pattern recognition"
                 },
                 "maze": {
-                    "count": len([p for p in all_pairs if p.get('domain') == 'maze']), 
+                    "count": len([p for p in all_pairs if p.get('domain') == 'maze']),
                     "description": "Spatial reasoning and navigation planning"
                 },
                 "raven": {
-                    "count": len([p for p in all_pairs if p.get('domain') == 'raven']), 
+                    "count": len([p for p in all_pairs if p.get('domain') == 'raven']),
                     "description": "Abstract reasoning and pattern completion"
                 },
                 "rotation": {
-                    "count": len([p for p in all_pairs if p.get('domain') == 'rotation']), 
+                    "count": len([p for p in all_pairs if p.get('domain') == 'rotation']),
+                    "description": "3D mental rotation and spatial visualization"
+                }
+            }
+        },
+        "pairs": all_pairs
+    }
+    
+    # Save master JSON
+    json_path = output_base / "vmeval_dataset_v2.json"
+    with open(json_path, 'w') as f:
+        json.dump(dataset, f, indent=2, default=str)
+    
+    return dataset, str(output_base)
+
+def read_dataset_from_folders(base_dir: Path = None) -> Dict[str, Any]:
+    """Read dataset from existing per-question folder structure.
+    
+    Args:
+        base_dir: Base directory containing question folders (default: data/questions)
+        
+    Returns:
+        Dataset dictionary constructed from folder contents
+    """
+    
+    if base_dir is None:
+        base_dir = Path(__file__).parent.parent.parent / "data" / "questions"
+    else:
+        base_dir = Path(base_dir)
+    
+    all_pairs = []
+    domains = ['chess', 'maze', 'raven', 'rotation']
+    
+    for domain in domains:
+        domain_dir = base_dir / f"{domain}_task"
+        if not domain_dir.exists():
+            continue
+            
+        # Read all question folders in this domain
+        for q_dir in sorted(domain_dir.iterdir()):
+            if not q_dir.is_dir():
+                continue
+                
+            # Read metadata if exists
+            metadata_path = q_dir / "question_metadata.json"
+            if metadata_path.exists():
+                with open(metadata_path, 'r') as f:
+                    pair = json.load(f)
+                    # Ensure domain is tagged
+                    pair['domain'] = domain
+                    all_pairs.append(pair)
+    
+    # Create dataset structure
+    dataset = {
+        "name": "vmeval_dataset_v2",
+        "description": f"VMEvalKit video reasoning evaluation dataset v2.0 ({len(all_pairs)} task pairs)",
+        "version": "2.0.0",
+        "total_pairs": len(all_pairs),
+        "generation_info": {
+            "domains": {
+                "chess": {
+                    "count": len([p for p in all_pairs if p.get('domain') == 'chess']),
+                    "description": "Strategic thinking and tactical pattern recognition"
+                },
+                "maze": {
+                    "count": len([p for p in all_pairs if p.get('domain') == 'maze']),
+                    "description": "Spatial reasoning and navigation planning"
+                },
+                "raven": {
+                    "count": len([p for p in all_pairs if p.get('domain') == 'raven']),
+                    "description": "Abstract reasoning and pattern completion"
+                },
+                "rotation": {
+                    "count": len([p for p in all_pairs if p.get('domain') == 'rotation']),
                     "description": "3D mental rotation and spatial visualization"
                 }
             }
@@ -179,33 +297,72 @@ def create_vmeval_dataset_v2(pairs_per_domain: int = 50, random_seed: int = 42) 
     
     return dataset
 
-def save_master_dataset(dataset: Dict[str, Any], output_path: str = None) -> str:
-    """Save the master dataset to JSON file."""
-    
-    if output_path is None:
-        data_dir = Path(__file__).parent.parent.parent / "data" / "questions"
-        data_dir.mkdir(parents=True, exist_ok=True)
-        output_path = data_dir / "vmeval_dataset_v2.json"
-    
-    with open(output_path, 'w') as f:
-        json.dump(dataset, f, indent=2, default=str)
-    
-    return str(output_path)
+def clean_artifacts() -> None:
+    """Remove previously generated artifacts to ensure a clean regeneration.
+
+    Deletes:
+    - data/questions/<domain>_task per-question folders
+    - data/questions/vmeval_dataset_v2.json (master JSON)
+    - Any legacy folders from previous versions
+    """
+    import shutil
+
+    base_dir = Path(__file__).parent.parent.parent
+    q_dir = base_dir / "data" / "questions"
+
+    # Folders to remove (if present)
+    dirs_to_remove = [
+        # Per-question folders
+        q_dir / "chess_task",
+        q_dir / "raven_task",
+        q_dir / "rotation_task",
+        q_dir / "maze_task",
+        # Legacy folders (for backward compatibility)
+        q_dir / "generated_chess",
+        q_dir / "generated_raven",
+        q_dir / "generated_rotation",
+        q_dir / "generated_mazes",
+        q_dir / "chess_tasks",
+        q_dir / "raven_tasks",
+        q_dir / "rotation_tasks",
+        q_dir / "maze_tasks",
+        q_dir / "per_question",
+    ]
+
+    for d in dirs_to_remove:
+        if d.exists():
+            print(f"🧹 Removing directory: {d}")
+            shutil.rmtree(d, ignore_errors=True)
+
+    # Files to remove
+    files_to_remove = [
+        q_dir / "vmeval_dataset_v2.json",
+    ]
+    for f in files_to_remove:
+        if f.exists():
+            print(f"🧹 Removing file: {f}")
+            try:
+                f.unlink()
+            except OSError:
+                pass
 
 def print_dataset_summary(dataset: Dict[str, Any]):
     """Print comprehensive dataset summary."""
     
     print("=" * 70)
-    print("📊 VMEVAL DATASET V2.0 - GENERATION COMPLETE (WITH IMPROVED PROMPTS)")
+    print("📊 VMEVAL DATASET V2.0 - SUMMARY")
     print("=" * 70)
     
-    gen_info = dataset['generation_info']
-    domains = gen_info['domains']
+    gen_info = dataset.get('generation_info', {})
+    domains = gen_info.get('domains', {})
     
     print(f"🎯 Dataset Statistics:")
     print(f"   Total Task Pairs: {dataset['total_pairs']}")
-    print(f"   Target: {gen_info['target_pairs']} ({gen_info['pairs_per_domain']} per domain)")
-    print(f"   Success Rate: {dataset['total_pairs']/gen_info['target_pairs']*100:.1f}%")
+    
+    # Only show target/success rate if available (from generation)
+    if 'target_pairs' in gen_info:
+        print(f"   Target: {gen_info['target_pairs']} ({gen_info.get('pairs_per_domain', 'N/A')} per domain)")
+        print(f"   Success Rate: {dataset['total_pairs']/gen_info['target_pairs']*100:.1f}%")
     print()
     
     print(f"🧠 Reasoning Domains:")
@@ -240,21 +397,45 @@ def print_dataset_summary(dataset: Dict[str, Any]):
     print()
 
 def main():
-    """Generate VMEvalKit Dataset Version 2 with improved prompts."""
+    """Generate VMEvalKit Dataset directly into per-question folder structure."""
+
+    parser = argparse.ArgumentParser(description="Create VMEvalKit v2 dataset directly in per-question folders")
+    parser.add_argument("--pairs-per-domain", type=int, default=50, help="Number of task pairs to generate per domain")
+    parser.add_argument("--random-seed", type=int, default=42, help="Random seed for reproducibility")
+    parser.add_argument("--clean", action="store_true", help="Remove previously generated outputs before regenerating")
+    parser.add_argument("--read-only", action="store_true", help="Only read existing dataset from folders, don't generate")
+    args = parser.parse_args()
+
+    if args.read_only:
+        # Just read existing dataset from folders
+        print("=" * 70)
+        print("📂 Reading existing dataset from folder structure...")
+        dataset = read_dataset_from_folders()
+        print_dataset_summary(dataset)
+        print("=" * 70)
+        return
+
+    if args.clean:
+        print("=" * 70)
+        print("🧹 Cleaning previously generated artifacts...")
+        clean_artifacts()
+        print("✅ Clean complete")
+        print("=" * 70)
     
-    # Generate dataset with 50 task pairs per domain
-    dataset = create_vmeval_dataset_v2(pairs_per_domain=50, random_seed=42)
-    
-    # Save to file
-    output_path = save_master_dataset(dataset)
+    # Generate dataset directly to folders
+    dataset, questions_dir = create_vmeval_dataset_direct(
+        pairs_per_domain=args.pairs_per_domain, 
+        random_seed=args.random_seed
+    )
     
     # Print comprehensive summary
     print_dataset_summary(dataset)
     
-    print(f"💾 Dataset saved: {output_path}")
-    print(f"🔗 Images location: data/questions/generated_*/")
+    print(f"💾 Master dataset JSON saved: {questions_dir}/vmeval_dataset_v2.json")
+    print(f"📁 Questions generated in: {questions_dir}")
+    print(f"🔗 Per-question folders: {questions_dir}/<domain>_task/<question_id>/")
     print()
-    print("🎉 VMEvalKit Dataset v2.0 with improved prompts ready for video reasoning evaluation!")
+    print("🎉 VMEvalKit Dataset v2.0 ready for video reasoning evaluation!")
     print("🚀 Use `vmevalkit/runner/inference.py` to evaluate models on this dataset")
     print("=" * 70)
 

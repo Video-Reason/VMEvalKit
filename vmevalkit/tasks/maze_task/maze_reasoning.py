@@ -122,11 +122,9 @@ class KnowWhatTaskGenerator:
     
     def __init__(self, data_root: str = "data/questions"):
         self.data_root = Path(data_root)
-        self.maze_tasks_dir = self.data_root / "maze_tasks"
-        self.generated_mazes_dir = self.data_root / "generated_mazes" 
-        
-        for dir_path in [self.maze_tasks_dir, self.generated_mazes_dir]:
-            dir_path.mkdir(parents=True, exist_ok=True)
+        # Don't create intermediate folders anymore
+        import tempfile
+        self.temp_dir = tempfile.mkdtemp()
         
         self.prompts = [
             "Navigate the blue star through white corridors (avoiding black walls) from its starting position to reach the red circle target.",
@@ -190,12 +188,12 @@ class KnowWhatTaskGenerator:
     
     def generate_knowwhat_pair(self, maze: np.ndarray, shape: str, size: Tuple[int, int], pair_id: str) -> MazeTaskPair:
         """Generate a KnowWhat task pair."""
-        # Generate first image (puzzle)
-        first_path = self.generated_mazes_dir / f"{pair_id}_first.png"
+        # Generate first image (puzzle) in temp directory
+        first_path = Path(self.temp_dir) / f"{pair_id}_first.png"
         self.render_knowwhat_maze(maze, first_path, show_solution=False)
         
-        # Generate final image (solution)
-        final_path = self.generated_mazes_dir / f"{pair_id}_final.png"
+        # Generate final image (solution) in temp directory
+        final_path = Path(self.temp_dir) / f"{pair_id}_final.png"
         self.render_knowwhat_maze(maze, final_path, show_solution=True)
         
         prompt = random.choice(self.prompts).format(shape=shape)
@@ -238,11 +236,9 @@ class IrregularTaskGenerator:
     
     def __init__(self, data_root: str = "data/questions"):
         self.data_root = Path(data_root)
-        self.maze_tasks_dir = self.data_root / "maze_tasks"
-        self.generated_mazes_dir = self.data_root / "generated_mazes"
-        
-        for dir_path in [self.maze_tasks_dir, self.generated_mazes_dir]:
-            dir_path.mkdir(parents=True, exist_ok=True)
+        # Don't create intermediate folders anymore
+        import tempfile
+        self.temp_dir = tempfile.mkdtemp()
         
         self._create_icons()
         
@@ -365,12 +361,12 @@ class IrregularTaskGenerator:
         """Generate an Irregular task pair using our implementation."""
         solved_maze = self.generate_solved_maze(grid_n)
         
-        # Generate first image (puzzle)
-        first_path = self.generated_mazes_dir / f"{pair_id}_first.png"
+        # Generate first image (puzzle) in temp directory
+        first_path = Path(self.temp_dir) / f"{pair_id}_first.png"
         self.render_irregular_maze(solved_maze, first_path, show_solution=False)
         
-        # Generate final image (solution)
-        final_path = self.generated_mazes_dir / f"{pair_id}_final.png"
+        # Generate final image (solution) in temp directory
+        final_path = Path(self.temp_dir) / f"{pair_id}_final.png"
         self.render_irregular_maze(solved_maze, final_path, show_solution=True)
         
         prompt = random.choice(self.prompts)
@@ -454,7 +450,7 @@ def create_knowwhat_dataset(num_samples: int = 20) -> MazeDataset:
         metadata={"task_category": "KnowWhat", "marker_style": "star_circle", "source": "pregenerated_experiment_mazes", "grid_size": "5x5_only"}
     )
     
-    dataset.save(generator.maze_tasks_dir / "knowwhat_tasks.json")
+    # Don't save to intermediate folder anymore
     print(f"✓ Loaded {len(pairs)} KnowWhat tasks from pre-generated files")
     return dataset
 
@@ -494,7 +490,7 @@ def create_irregular_dataset(num_samples: int = 20) -> MazeDataset:
         }
     )
     
-    dataset.save(generator.maze_tasks_dir / "irregular_tasks.json")
+    # Don't save to intermediate folder anymore
     print(f"✓ Generated {len(pairs)} Irregular tasks")
     return dataset
 
@@ -524,8 +520,7 @@ def create_combined_dataset(knowwhat_samples: int = 15, irregular_samples: int =
         }
     )
     
-    generator = KnowWhatTaskGenerator()
-    combined_dataset.save(generator.maze_tasks_dir / "combined_maze_tasks.json")
+    # Don't save to intermediate folder anymore
     
     print(f"\n🎉 Combined dataset created with {len(combined_dataset)} total pairs!")
     print(f"   KnowWhat tasks: {len(knowwhat_dataset)} (algorithmic patterns)")
