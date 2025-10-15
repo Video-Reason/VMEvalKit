@@ -1,0 +1,302 @@
+{
+  "rule": "Combination pattern",
+  "correct_option_index": 4,
+  "seed": 2025,
+  "tile_size": 192,
+  "matrix_data": [
+    [
+      {
+        "shapes": [
+          "circle",
+          "circle"
+        ],
+        "positions": [
+          "left",
+          "right"
+        ],
+        "colors": [
+          "black",
+          "black"
+        ],
+        "fills": [
+          null,
+          null
+        ]
+      },
+      {
+        "shapes": [
+          "diamond"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          null
+        ]
+      },
+      {
+        "shapes": [
+          "circle",
+          "circle"
+        ],
+        "positions": [
+          "left",
+          "right"
+        ],
+        "colors": [
+          "black",
+          "black"
+        ],
+        "fills": [
+          null,
+          null
+        ]
+      }
+    ],
+    [
+      {
+        "shapes": [
+          "diamond"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          null
+        ]
+      },
+      {
+        "shapes": [
+          "circle"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          null
+        ]
+      },
+      {
+        "shapes": [
+          "diamond"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          null
+        ]
+      }
+    ],
+    [
+      {
+        "shapes": [
+          "circle",
+          "circle"
+        ],
+        "positions": [
+          "left",
+          "right"
+        ],
+        "colors": [
+          "black",
+          "black"
+        ],
+        "fills": [
+          null,
+          null
+        ]
+      },
+      {
+        "shapes": [
+          "diamond"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          null
+        ]
+      },
+      {
+        "shapes": [
+          "circle",
+          "circle"
+        ],
+        "positions": [
+          "left",
+          "right"
+        ],
+        "colors": [
+          "black",
+          "black"
+        ],
+        "fills": [
+          null,
+          null
+        ]
+      }
+    ]
+  ],
+  "options_data": [
+    {
+      "shapes": [
+        "square",
+        "cross"
+      ],
+      "positions": [
+        "left",
+        "right"
+      ],
+      "colors": [
+        "black",
+        "black"
+      ],
+      "fills": [
+        null,
+        "lightgray"
+      ]
+    },
+    {
+      "shapes": [
+        "square",
+        "circle"
+      ],
+      "positions": [
+        "left",
+        "right"
+      ],
+      "colors": [
+        "black",
+        "black"
+      ],
+      "fills": [
+        "white",
+        null
+      ]
+    },
+    {
+      "shapes": [
+        "diamond",
+        "circle"
+      ],
+      "positions": [
+        "left",
+        "right"
+      ],
+      "colors": [
+        "black",
+        "black"
+      ],
+      "fills": [
+        "white",
+        null
+      ]
+    },
+    {
+      "shapes": [
+        "circle",
+        "circle"
+      ],
+      "positions": [
+        "left",
+        "right"
+      ],
+      "colors": [
+        "black",
+        "black"
+      ],
+      "fills": [
+        null,
+        null
+      ]
+    },
+    {
+      "shapes": [
+        "circle",
+        "square"
+      ],
+      "positions": [
+        "left",
+        "right"
+      ],
+      "colors": [
+        "black",
+        "black"
+      ],
+      "fills": [
+        "lightgray",
+        null
+      ]
+    },
+    {
+      "shapes": [
+        "diamond",
+        "cross"
+      ],
+      "positions": [
+        "left",
+        "right"
+      ],
+      "colors": [
+        "black",
+        "black"
+      ],
+      "fills": [
+        null,
+        "white"
+      ]
+    },
+    {
+      "shapes": [
+        "diamond",
+        "star"
+      ],
+      "positions": [
+        "left",
+        "right"
+      ],
+      "colors": [
+        "black",
+        "black"
+      ],
+      "fills": [
+        null,
+        "white"
+      ]
+    },
+    {
+      "shapes": [
+        "cross",
+        "star"
+      ],
+      "positions": [
+        "left",
+        "right"
+      ],
+      "colors": [
+        "black",
+        "black"
+      ],
+      "fills": [
+        null,
+        "white"
+      ]
+    }
+  ]
+}

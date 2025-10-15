@@ -1,1 +1,0 @@
-Complete this 3x3 grid pattern matrix. Show what goes in the missing 9th panel.

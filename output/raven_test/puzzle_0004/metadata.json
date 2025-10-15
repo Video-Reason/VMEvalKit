@@ -1,0 +1,254 @@
+{
+  "rule": "Fill/color pattern",
+  "correct_option_index": 1,
+  "seed": 2029,
+  "tile_size": 192,
+  "matrix_data": [
+    [
+      {
+        "shapes": [
+          "diamond"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          null
+        ]
+      },
+      {
+        "shapes": [
+          "diamond"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          "white"
+        ]
+      },
+      {
+        "shapes": [
+          "diamond"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          "lightgray"
+        ]
+      }
+    ],
+    [
+      {
+        "shapes": [
+          "diamond"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          "white"
+        ]
+      },
+      {
+        "shapes": [
+          "diamond"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          "lightgray"
+        ]
+      },
+      {
+        "shapes": [
+          "diamond"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          null
+        ]
+      }
+    ],
+    [
+      {
+        "shapes": [
+          "diamond"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          "lightgray"
+        ]
+      },
+      {
+        "shapes": [
+          "diamond"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          null
+        ]
+      },
+      {
+        "shapes": [
+          "diamond"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          "white"
+        ]
+      }
+    ]
+  ],
+  "options_data": [
+    {
+      "shapes": [
+        "diamond"
+      ],
+      "positions": [
+        "center"
+      ],
+      "colors": [
+        "black"
+      ],
+      "fills": [
+        "white"
+      ]
+    },
+    {
+      "shapes": [
+        "square"
+      ],
+      "positions": [
+        "center"
+      ],
+      "colors": [
+        "black"
+      ],
+      "fills": [
+        "lightgray"
+      ]
+    },
+    {
+      "shapes": [
+        "diamond"
+      ],
+      "positions": [
+        "center"
+      ],
+      "colors": [
+        "black"
+      ],
+      "fills": [
+        "lightgray"
+      ]
+    },
+    {
+      "shapes": [
+        "cross"
+      ],
+      "positions": [
+        "center"
+      ],
+      "colors": [
+        "black"
+      ],
+      "fills": [
+        "white"
+      ]
+    },
+    {
+      "shapes": [
+        "triangle"
+      ],
+      "positions": [
+        "center"
+      ],
+      "colors": [
+        "black"
+      ],
+      "fills": [
+        "white"
+      ]
+    },
+    {
+      "shapes": [
+        "square"
+      ],
+      "positions": [
+        "center"
+      ],
+      "colors": [
+        "black"
+      ],
+      "fills": [
+        "lightgray"
+      ]
+    },
+    {
+      "shapes": [
+        "cross"
+      ],
+      "positions": [
+        "center"
+      ],
+      "colors": [
+        "black"
+      ],
+      "fills": [
+        "lightgray"
+      ]
+    },
+    {
+      "shapes": [
+        "diamond"
+      ],
+      "positions": [
+        "center"
+      ],
+      "colors": [
+        "black"
+      ],
+      "fills": [
+        "white"
+      ]
+    }
+  ]
+}

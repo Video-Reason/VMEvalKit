@@ -1,1 +1,0 @@
-Complete this 2x2 grid pattern matrix. Show what goes in the missing 4th panel.

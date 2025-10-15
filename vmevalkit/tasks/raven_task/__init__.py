@@ -1,31 +1,28 @@
 """
-RAVEN Progressive Matrix Task Module for VMEvalKit
+Raven Progressive Matrices (RPM) task module for VMEvalKit.
 
-Implements self-contained Progressive Matrix reasoning tasks using a local generator (no external dataset dependency).
-Tests video models' ability to demonstrate abstract visual reasoning through pattern completion.
-
-Key capabilities:
-- Generate Progressive Matrix puzzles with 7 different configurations
-- Create incomplete→complete image pairs for video reasoning evaluation
-- Support multiple rule types: Constant, Progression
-- Classify tasks by difficulty and pattern complexity
-- Evaluate abstract reasoning and analogical thinking in video models
+This module provides functionality to generate RPM-style puzzles
+for evaluating video model reasoning capabilities.
 """
 
-from .raven_reasoning import (
-    RavenGenerator,
-    create_dataset,
-    create_task_pair,
-    generate_task_images,
-    generate_prompt
-)
+from .rpm_generator import RPMPuzzleGenerator, generate_puzzle
+from .batch_generate import main as batch_generate
 
 __all__ = [
-    'RavenGenerator',
-    'create_dataset', 
-    'create_task_pair',
-    'generate_task_images',
-    'generate_prompt'
+    'RPMPuzzleGenerator',
+    'generate_puzzle', 
+    'batch_generate'
 ]
 
-__version__ = "1.0.0"
+# Task metadata
+TASK_INFO = {
+    'name': 'Raven Progressive Matrices',
+    'description': 'Generate and solve RPM-style visual reasoning puzzles',
+    'version': '2.0.0',
+    'capabilities': [
+        'pattern_recognition',
+        'logical_reasoning',
+        'spatial_reasoning',
+        'abstract_thinking'
+    ]
+}

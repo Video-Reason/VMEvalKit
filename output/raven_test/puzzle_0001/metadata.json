@@ -1,0 +1,254 @@
+{
+  "rule": "Shape progression by row",
+  "correct_option_index": 6,
+  "seed": 2026,
+  "tile_size": 192,
+  "matrix_data": [
+    [
+      {
+        "shapes": [
+          "triangle"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          null
+        ]
+      },
+      {
+        "shapes": [
+          "cross"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          null
+        ]
+      },
+      {
+        "shapes": [
+          "circle"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          null
+        ]
+      }
+    ],
+    [
+      {
+        "shapes": [
+          "triangle"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          null
+        ]
+      },
+      {
+        "shapes": [
+          "cross"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          null
+        ]
+      },
+      {
+        "shapes": [
+          "circle"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          null
+        ]
+      }
+    ],
+    [
+      {
+        "shapes": [
+          "triangle"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          null
+        ]
+      },
+      {
+        "shapes": [
+          "cross"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          null
+        ]
+      },
+      {
+        "shapes": [
+          "circle"
+        ],
+        "positions": [
+          "center"
+        ],
+        "colors": [
+          "black"
+        ],
+        "fills": [
+          null
+        ]
+      }
+    ]
+  ],
+  "options_data": [
+    {
+      "shapes": [
+        "star"
+      ],
+      "positions": [
+        "center"
+      ],
+      "colors": [
+        "black"
+      ],
+      "fills": [
+        "lightgray"
+      ]
+    },
+    {
+      "shapes": [
+        "cross"
+      ],
+      "positions": [
+        "center"
+      ],
+      "colors": [
+        "black"
+      ],
+      "fills": [
+        null
+      ]
+    },
+    {
+      "shapes": [
+        "square"
+      ],
+      "positions": [
+        "center"
+      ],
+      "colors": [
+        "black"
+      ],
+      "fills": [
+        null
+      ]
+    },
+    {
+      "shapes": [
+        "cross"
+      ],
+      "positions": [
+        "center"
+      ],
+      "colors": [
+        "black"
+      ],
+      "fills": [
+        "lightgray"
+      ]
+    },
+    {
+      "shapes": [
+        "cross"
+      ],
+      "positions": [
+        "center"
+      ],
+      "colors": [
+        "black"
+      ],
+      "fills": [
+        "white"
+      ]
+    },
+    {
+      "shapes": [
+        "circle"
+      ],
+      "positions": [
+        "center"
+      ],
+      "colors": [
+        "black"
+      ],
+      "fills": [
+        null
+      ]
+    },
+    {
+      "shapes": [
+        "cross"
+      ],
+      "positions": [
+        "center"
+      ],
+      "colors": [
+        "black"
+      ],
+      "fills": [
+        "lightgray"
+      ]
+    },
+    {
+      "shapes": [
+        "cross"
+      ],
+      "positions": [
+        "center"
+      ],
+      "colors": [
+        "black"
+      ],
+      "fills": [
+        "white"
+      ]
+    }
+  ]
+}
