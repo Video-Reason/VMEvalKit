@@ -1,7 +1,7 @@
 """
 RAVEN Progressive Matrix Task Module for VMEvalKit
 
-Implements Progressive Matrix reasoning tasks based on the CVPR 2019 RAVEN dataset.
+Implements self-contained Progressive Matrix reasoning tasks using a local generator (no external dataset dependency).
 Tests video models' ability to demonstrate abstract visual reasoning through pattern completion.
 
 Key capabilities:

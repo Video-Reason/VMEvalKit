@@ -4,7 +4,7 @@
 
 The RAVEN Progressive Matrix Reasoning Task evaluates video generation models' ability to demonstrate **abstract visual reasoning** and **pattern completion** by generating videos that show the logical process of completing Raven's Progressive Matrices (RPM). This task tests analogical reasoning, relational understanding, and rule-based pattern recognition capabilities.
 
-Based on the **CVPR 2019 RAVEN dataset** for **R**elational and **A**nalogical **V**isual r**E**aso**N**ing.
+Note: This task now uses a lightweight local RAVEN-like generator implemented inside this repository (no external submodule). It reproduces core RPM mechanics with a simplified, robust rule set.
 
 ## Task Structure
 
@@ -16,7 +16,7 @@ Based on the **CVPR 2019 RAVEN dataset** for **R**elational and **A**nalogical *
 
 ## Configuration Types
 
-The task supports **7 different figural configurations** from the original RAVEN dataset:
+The current local generator supports three robust configurations:
 
 ### 1. Center Configuration
 - **Description**: Single centered element with systematic transformations
@@ -29,33 +29,13 @@ The task supports **7 different figural configurations** from the original RAVEN
 - **Example Prompt**: "Complete this 2×2 grid pattern matrix"
 
 ### 3. 3×3Grid Configuration
-- **Description**: Nine-element grid patterns with complex relationships
-- **Pattern**: 3×3 arrangements with multi-level rule applications  
+- **Description**: Nine-element grid patterns with multi-level rule applications
+- **Pattern**: 3×3 arrangements with systematic transformations  
 - **Example Prompt**: "Complete this 3×3 grid pattern matrix"
-
-### 4. Left-Right Configuration
-- **Description**: Horizontal relationships between left and right elements
-- **Pattern**: Systematic transformations across horizontal axis
-- **Example Prompt**: "Complete this left-right pattern matrix"
-
-### 5. Up-Down Configuration
-- **Description**: Vertical relationships between upper and lower elements  
-- **Pattern**: Systematic transformations across vertical axis
-- **Example Prompt**: "Complete this up-down pattern matrix"
-
-### 6. Out-InCenter Configuration
-- **Description**: Relationship between outer elements and inner center
-- **Pattern**: Outside-inside transformations with central focus
-- **Example Prompt**: "Complete this outside-inside center pattern matrix"
-
-### 7. Out-InGrid Configuration
-- **Description**: Relationship between outer grid and inner elements
-- **Pattern**: Complex outside-inside transformations with grid structure
-- **Example Prompt**: "Complete this outside-inside grid pattern matrix"
 
 ## Rule Types
 
-**Note: Current implementation focuses on simplified rules (Constant and Progression) for reliable generation. More complex rules (Arithmetic, Distribute_Three) are documented below but not actively used in the current simplified version.**
+**Note: The local generator implements simplified rules (Constant and Progression) for reliability. Arithmetic and Distribute_Three are not implemented in the local core.**
 
 ### Abstract Reasoning Rules
 
@@ -136,7 +116,7 @@ raven_data = {
 ├─────┼─────┼─────┤
 │ P₄  │ P₅  │ P₆  │  
 ├─────┼─────┼─────┤
-│ P₇  │ P₈  │  ?  │  ← Missing panel
+│ P₇  │ P₈  │     │  ← Missing panel
 └─────┴─────┴─────┘
 ```
 
@@ -198,8 +178,7 @@ print(f"Generated {len(dataset['pairs'])} Progressive Matrix tasks")
 # Access individual tasks
 task = dataset['pairs'][0]
 print(f"Task: {task['prompt']}")
-print(f"Category: {task['task_category']}")  
-print(f"Rules: {task['rule_types']}")
+print(f"Category: {task['task_category']}")
 ```
 
 ### Custom Configuration
@@ -207,8 +186,8 @@ print(f"Rules: {task['rule_types']}")
 generator = RavenGenerator()
 
 # Generate specific configuration
-task_data = generator.generate_single_task("center_single", difficulty="hard")
-print(f"Generated {task_data['config_display']} task with rules: {task_data['rules']['primary_rules']}")
+task_data = generator.generate_single_task("center_single")
+print(f"Generated {task_data['config_display']} task")
 ```
 
 ## Integration with VMEvalKit
@@ -217,7 +196,7 @@ print(f"Generated {task_data['config_display']} task with rules: {task_data['rul
 The RAVEN task integrates seamlessly with VMEvalKit's evaluation pipeline:
 
 ```python
-# Load RAVEN dataset
+# Load RAVEN tasks
 from vmevalkit.runner.inference import run_inference
 
 # Run evaluation on RAVEN tasks
@@ -228,35 +207,25 @@ results = run_inference(
 )
 ```
 
-### Performance Baselines
-Based on the original RAVEN paper benchmarks:
-
-| Model Type | Accuracy | Notes |
-|------------|----------|-------|
-| **Human Performance** | **84.41%** | Average across all configurations |
-| ResNet+DRT | 59.56% | Best automated performance |
-| CNN+DRT | 39.42% | Standard CNN approach |
-| Random Baseline | 12.5% | Random selection from 8 choices |
+ 
 
 ## Technical Implementation
 
 ### Matrix Generation
-- Uses the original RAVEN attributed stochastic image grammar
+- Uses a local, minimal RAVEN-like generator (no external submodule)
 - Generates systematic rule-based transformations
 - Creates 160×160 pixel panels with clear geometric shapes
-- Supports all original attribute types: Number, Position, Type, Size, Color
+- Supports key attributes: Number, Position, Type, Size, Color (simplified)
 
 ### Image Processing  
 - **Format**: PNG images at 100 DPI
 - **Layout**: 3×3 grid layout with clear panel borders
-- **Incomplete**: 9th panel shows "?" placeholder  
+- **Incomplete**: 9th panel is left blank (white)  
 - **Complete**: All panels filled with appropriate elements
 
 ### Rule Validation
-- Validates all generated matrices for rule consistency
-- Ensures unique solutions for each Progressive Matrix
-- Filters out ambiguous or invalid task configurations
-- Maintains difficulty balance across rule types
+- Ensures basic internal consistency for generated matrices
+- Does not guarantee uniqueness of solutions (aims for clarity and simplicity)
 
 ## Research Applications
 

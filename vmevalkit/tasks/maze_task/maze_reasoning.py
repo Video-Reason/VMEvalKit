@@ -122,10 +122,10 @@ class MazeTaskGenerator:
         self._create_icons()
         
         self.prompts = [
-            "Navigate the green dot through the maze corridors (avoiding walls) from its starting position to reach the red flag.",
-            "Guide the green dot through the open paths to the red flag destination. Walls block movement, corridors allow passage.",
-            "Move the green dot from its starting position through the maze paths to the red flag. Navigate only through corridors.",
-            "The green dot must reach the red flag by moving through open corridors. Maze walls cannot be crossed.",
+            "Move the green dot to the red flag. White=open space; black=walls.",
+            "Guide the green dot through the open paths to the red flag destination. Walls block movement, white corridors allow passage.",
+            "Move the green dot from its starting position through the maze paths to the red flag. Navigate only through open spaces (white).",
+            "The green dot must reach the red flag by moving through open white spaces. Maze walls (black) cannot be crossed.",
         ]
     
     def _create_icons(self):
