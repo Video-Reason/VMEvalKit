@@ -15,6 +15,8 @@ from typing import Optional, Dict, Any, Union
 from pathlib import Path
 import logging
 from enum import Enum
+import io
+from PIL import Image
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +75,102 @@ class WaveSpeedService:
             "Content-Type": "application/json"
         }
     
+    def _is_veo_model(self) -> bool:
+        """Check if the current model is a VEO 3.1 model."""
+        veo_models = [WaveSpeedModel.VEO_3_1_I2V, WaveSpeedModel.VEO_3_1_FAST_I2V]
+        veo_values = [WaveSpeedModel.VEO_3_1_I2V.value, WaveSpeedModel.VEO_3_1_FAST_I2V.value]
+        return self.model in veo_models or self.model in veo_values
+
+    def _determine_best_veo_aspect_ratio(self, image_width: int, image_height: int, preferred_ratio: Optional[str] = None) -> str:
+        """
+        Determine the best aspect ratio for VEO 3.1 based on input image dimensions.
+        
+        Args:
+            image_width: Original image width
+            image_height: Original image height  
+            preferred_ratio: User-specified preferred ratio
+            
+        Returns:
+            Best aspect ratio string (e.g., "16:9", "9:16", "1:1")
+        """
+        # VEO 3.1 via WaveSpeed supports these aspect ratios
+        supported_ratios = {
+            "16:9": 16/9,   # ~1.78
+            "9:16": 9/16,   # ~0.56  
+            "1:1": 1.0      # 1.0
+        }
+        
+        # If user specified a ratio and it's supported, use it
+        if preferred_ratio and preferred_ratio in supported_ratios:
+            return preferred_ratio
+            
+        input_ratio = image_width / image_height
+        
+        # Find the closest matching aspect ratio
+        best_ratio = None
+        min_diff = float('inf')
+        
+        for ratio_str, ratio_val in supported_ratios.items():
+            diff = abs(input_ratio - ratio_val)
+            if diff < min_diff:
+                min_diff = diff
+                best_ratio = ratio_str
+        
+        logger.info(f"Input aspect ratio {input_ratio:.3f} -> Best VEO match: {best_ratio}")
+        return best_ratio
+
+    def _pad_image_for_veo(self, image: Image.Image, target_aspect_ratio: str) -> Image.Image:
+        """
+        Pad an image with white margins to match VEO's target aspect ratio.
+        
+        Args:
+            image: PIL Image to pad
+            target_aspect_ratio: Target aspect ratio ("16:9", "9:16", "1:1")
+            
+        Returns:
+            PIL Image with white padding to match target aspect ratio
+        """
+        # Parse target aspect ratio
+        aspect_ratios = {
+            "16:9": 16/9,
+            "9:16": 9/16, 
+            "1:1": 1.0
+        }
+        
+        if target_aspect_ratio not in aspect_ratios:
+            raise ValueError(f"Unsupported VEO aspect ratio: {target_aspect_ratio}")
+        
+        target_ratio = aspect_ratios[target_aspect_ratio]
+        width, height = image.size
+        current_ratio = width / height
+        
+        # If already correct ratio, return as-is
+        if abs(current_ratio - target_ratio) < 0.01:
+            return image
+        
+        # Calculate target dimensions  
+        if current_ratio > target_ratio:
+            # Image is wider than target - add height padding
+            new_width = width
+            new_height = int(width / target_ratio)
+        else:
+            # Image is taller than target - add width padding
+            new_height = height
+            new_width = int(height * target_ratio)
+        
+        # Create white canvas with target dimensions
+        padded = Image.new("RGB", (new_width, new_height), color="white")
+        
+        # Calculate position to center the original image
+        x_offset = (new_width - width) // 2
+        y_offset = (new_height - height) // 2
+        
+        # Paste original image onto white canvas
+        padded.paste(image, (x_offset, y_offset))
+        
+        logger.info(f"VEO padding: {width}×{height} -> {new_width}×{new_height} for {target_aspect_ratio} ratio")
+        return padded
+
     async def generate_video(
         self,
         prompt: str,
@@ -107,8 +205,14 @@ class WaveSpeedService:
         Returns:
             Dictionary with generation results including video URL/path
         """
-        # Encode image to base64
-        image_b64 = self._encode_image(image_path)
+        # Auto-detect best aspect ratio for VEO models if not specified
+        if self._is_veo_model() and not aspect_ratio:
+            with Image.open(image_path) as img:
+                aspect_ratio = self._determine_best_veo_aspect_ratio(img.width, img.height)
+                logger.info(f"Auto-detected aspect ratio for VEO: {aspect_ratio}")
+
+        # Encode image to base64 (with VEO padding if needed)
+        image_b64 = self._encode_image(image_path, aspect_ratio)
         
         # Submit generation request
         request_id = await self._submit_generation(
@@ -159,14 +263,41 @@ class WaveSpeedService:
         
         return result
     
-    def _encode_image(self, image_path: Union[str, Path]) -> str:
-        """Encode image file to base64."""
+    def _encode_image(self, image_path: Union[str, Path], aspect_ratio: Optional[str] = None) -> str:
+        """
+        Encode image file to base64, with optional VEO padding.
+        
+        Args:
+            image_path: Path to input image
+            aspect_ratio: Target aspect ratio for VEO models
+            
+        Returns:
+            Base64 encoded image string
+        """
         path = Path(image_path)
         if not path.exists():
             raise FileNotFoundError(f"Image not found: {image_path}")
         
-        with open(path, "rb") as f:
-            image_data = f.read()
+        # For VEO models, process image with padding if needed
+        if self._is_veo_model() and aspect_ratio:
+            # Load and process image
+            image = Image.open(path)
+            if image.mode != "RGB":
+                image = image.convert("RGB")
+            
+            # Pad image to match target aspect ratio
+            padded_image = self._pad_image_for_veo(image, aspect_ratio)
+            
+            # Convert processed image to bytes
+            buffer = io.BytesIO()
+            padded_image.save(buffer, format="PNG", quality=95)
+            image_data = buffer.getvalue()
+            
+            logger.debug(f"Processed VEO image for {aspect_ratio} aspect ratio")
+        else:
+            # For WAN models or when no aspect ratio specified, use original image
+            with open(path, "rb") as f:
+                image_data = f.read()
         
         return base64.b64encode(image_data).decode("utf-8")
     
@@ -335,14 +466,14 @@ class Veo31Service(WaveSpeedService):
         output_path: Optional[Path] = None,
         poll_timeout_s: float = 300.0,
         poll_interval_s: float = 2.0,
-        aspect_ratio: Optional[str] = "16:9",
+        aspect_ratio: Optional[str] = None,  # Let auto-detection work by default
         duration: Optional[float] = 8.0,
         resolution: Optional[str] = "1080p",  # Default to 1080p for Veo 3.1
         generate_audio: bool = True,  # Default to generating audio
         negative_prompt: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Generate video using Google Veo 3.1 model.
+        Generate video using Google Veo 3.1 model with automatic aspect ratio detection.
         
         Args:
             prompt: Text description for video generation
@@ -351,7 +482,7 @@ class Veo31Service(WaveSpeedService):
             output_path: Optional path to save video (if not provided, returns URL)
             poll_timeout_s: Maximum time to wait for completion
             poll_interval_s: Time between polling attempts
-            aspect_ratio: Video aspect ratio (e.g., "16:9", "9:16", "1:1")
+            aspect_ratio: Video aspect ratio (e.g., "16:9", "9:16", "1:1"). If None, automatically detects best ratio.
             duration: Video duration in seconds (up to 8 seconds)
             resolution: Output resolution ("720p" or "1080p", defaults to "1080p")
             generate_audio: Whether to generate audio (defaults to True)
