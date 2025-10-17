@@ -284,7 +284,7 @@ class SoraService:
             job = response.json()
             return job["id"]
     
-    async def _poll_video_job(self, video_id: str, max_wait_time: int = 1800) -> Dict[str, Any]:  # 30 minute timeout
+    async def _poll_video_job(self, video_id: str, max_wait_time: int = 3600) -> Dict[str, Any]:  # 60 minute timeout
         """Poll video generation job until completion."""
         import httpx
         
