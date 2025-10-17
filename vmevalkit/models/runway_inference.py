@@ -332,7 +332,7 @@ class RunwayService:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         
         import httpx
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=600.0) as client:  # 10 minute timeout for download
             response = await client.get(video_url)
             if response.status_code != 200:
                 raise Exception(f"Failed to download video: {response.status_code}")
