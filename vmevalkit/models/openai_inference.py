@@ -266,7 +266,7 @@ class SoraService:
             "seconds": str(duration),
         }
         
-        async with httpx.AsyncClient(timeout=600.0) as client:  # 10 minute timeout for submission
+        async with httpx.AsyncClient(timeout=7200.0) as client:  # 120 minute timeout for submission
             with open(path, "rb") as f:
                 files = {"input_reference": (path.name, f, mime)}
                 response = await client.post(
@@ -284,7 +284,7 @@ class SoraService:
             job = response.json()
             return job["id"]
     
-    async def _poll_video_job(self, video_id: str, max_wait_time: int = 3600) -> Dict[str, Any]:  # 60 minute timeout
+    async def _poll_video_job(self, video_id: str, max_wait_time: int = 7200) -> Dict[str, Any]:  # 120 minute timeout
         """Poll video generation job until completion."""
         import httpx
         
@@ -293,7 +293,7 @@ class SoraService:
         
         start_time = time.time()
         
-        async with httpx.AsyncClient(timeout=120.0) as client:  # 2 minute timeout for polling
+        async with httpx.AsyncClient(timeout=7200.0) as client:  # 120 minute timeout for polling
             while time.time() - start_time < max_wait_time:
                 try:
                     response = await client.get(
@@ -335,7 +335,7 @@ class SoraService:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         headers = {"Authorization": f"Bearer {self.api_key}"}
         
-        async with httpx.AsyncClient(timeout=1800.0) as client:  # 30 minute timeout
+        async with httpx.AsyncClient(timeout=7200.0) as client:  # 120 minute timeout
             async with client.stream(
                 "GET",
                 f"{self.base_url}/videos/{video_id}/content",

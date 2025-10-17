@@ -586,6 +586,124 @@ def run_pilot_experiment(
     # Create a shared InferenceRunner instance
     runner = InferenceRunner(output_dir=str(output_dir))
     
+    # BUGFIX: Explicitly retry all failed jobs first
+    if progress_tracker and progress_tracker.is_resume:
+        failed_jobs = progress_tracker.progress.get("jobs_failed", [])
+        if failed_jobs:
+            print(f"\n🔄 RETRYING {len(failed_jobs)} FAILED JOBS")
+            print("=" * 60)
+            
+            retry_count = 0
+            retry_success = 0
+            retry_still_failed = 0
+            
+            for failed_job in failed_jobs:
+                # Extract job info
+                if isinstance(failed_job, dict):
+                    job_id = failed_job.get("job_id", "")
+                    error_msg = failed_job.get("error", "Unknown error")
+                else:
+                    job_id = failed_job
+                    error_msg = "Unknown error"
+                
+                if not job_id:
+                    continue
+                
+                # Parse job_id to get model and task
+                parts = job_id.split("_")
+                if len(parts) < 3:
+                    continue
+                
+                # Reconstruct model name and task id
+                # Handle multi-part model names like wavespeed-wan-2.2-i2v-720p
+                if parts[0] == "wavespeed":
+                    model_name = "_".join(parts[:5])  # wavespeed-wan-2.2-i2v-720p
+                    domain = parts[5]
+                    task_num = parts[6]
+                elif parts[0] == "veo":
+                    model_name = "_".join(parts[:2])  # veo-3.1-720p
+                    domain = parts[2]
+                    task_num = parts[3]
+                elif parts[0] == "openai":
+                    model_name = "_".join(parts[:2])  # openai-sora-2
+                    domain = parts[2]
+                    task_num = parts[3]
+                elif parts[0] == "luma":
+                    model_name = "_".join(parts[:2])  # luma-ray-2
+                    domain = parts[2]
+                    task_num = parts[3]
+                else:
+                    # Generic handling
+                    model_name = parts[0]
+                    domain = parts[1]
+                    task_num = parts[2]
+                
+                # Find the task in our task list
+                task_found = None
+                if domain in tasks_by_domain:
+                    for task in tasks_by_domain[domain]:
+                        if task["id"] == f"{domain}_{task_num}":
+                            task_found = task
+                            break
+                
+                if not task_found:
+                    print(f"   ⚠️ Could not find task for {job_id}")
+                    continue
+                
+                retry_count += 1
+                print(f"\n   [{retry_count}/{len(failed_jobs)}] Retrying: {job_id}")
+                print(f"      Previous error: {error_msg[:80]}...")
+                
+                # Remove from failed list (will be re-added if it fails again)
+                progress_tracker.progress["jobs_failed"] = [
+                    j for j in progress_tracker.progress["jobs_failed"] 
+                    if not (isinstance(j, dict) and j.get("job_id") == job_id) and j != job_id
+                ]
+                
+                # Mark as in progress
+                progress_tracker.job_started(job_id)
+                
+                # Run the inference
+                result = run_single_inference(
+                    model_name=model_name,
+                    task=task_found,
+                    category=domain,
+                    output_dir=output_dir,
+                    runner=runner
+                )
+                
+                # Update progress
+                if result["success"]:
+                    progress_tracker.job_completed(job_id, result)
+                    retry_success += 1
+                    print(f"      ✅ Retry successful!")
+                else:
+                    progress_tracker.job_failed(job_id, result.get("error", "Unknown error"))
+                    retry_still_failed += 1
+                    print(f"      ❌ Retry failed: {result.get('error', 'Unknown')[:80]}")
+                
+                # Update statistics
+                all_results.append(result)
+                if result["success"]:
+                    statistics["completed"] += 1
+                    statistics["by_model"][model_name]["completed"] += 1
+                    statistics["by_domain"][domain]["completed"] += 1
+                else:
+                    statistics["failed"] += 1
+                    statistics["by_model"][model_name]["failed"] += 1
+                    statistics["by_domain"][domain]["failed"] += 1
+                
+                # Save progress periodically
+                if retry_count % 5 == 0:
+                    progress_tracker.save_progress()
+            
+            print(f"\n📊 Retry Summary:")
+            print(f"   Attempted: {retry_count}")
+            print(f"   Succeeded: {retry_success}")
+            print(f"   Still failing: {retry_still_failed}")
+            print("=" * 60 + "\n")
+    
+
     # Track overall progress
     job_counter = 0
     
