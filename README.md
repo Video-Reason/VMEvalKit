@@ -45,16 +45,17 @@ print(f"Video saved to: {result['inference_dir']}")
 
 ## Supported Models
 
-VMEvalKit supports **36+ models** across **9 providers**:
+VMEvalKit supports **40 models** across **11 families** using a clean modular architecture:
 
-**Commercial APIs (28 models):**
+**Commercial APIs (29 models):**
 - **Luma Dream Machine**: 2 models (`luma-ray-2`, `luma-ray-flash-2`)
 - **Google Veo**: 3 models (`veo-2.0-generate`, `veo-3.0-generate`, etc.)
-- **WaveSpeed WAN**: 18 models (2.1 & 2.2 variants)
-- **Runway ML**: 3 models
-- **OpenAI Sora**: 2 models
+- **Google Veo 3.1**: 4 models (via WaveSpeed, with 720p/1080p variants)
+- **WaveSpeed WAN**: 18 models (2.1 & 2.2 variants with LoRA/ultra-fast options)
+- **Runway ML**: 3 models (Gen-3A Turbo, Gen-4 Turbo/Aleph)
+- **OpenAI Sora**: 2 models (Sora-2, Sora-2-Pro)
 
-**Open-Source Models (8 models):**
+**Open-Source Models (11 models):**
 - **LTX-Video**: 3 models (13B distilled, 13B dev, 2B distilled)
 - **HunyuanVideo**: 1 model (high-quality 720p)
 - **VideoCrafter**: 1 model (text-guided generation)
@@ -92,13 +93,35 @@ S3_BUCKET=vmevalkit
 AWS_DEFAULT_REGION=us-east-2
 ```
 
+## Architecture
+
+VMEvalKit uses a **clean modular architecture** with dynamic loading:
+
+```
+vmevalkit/
+├── runner/
+│   ├── MODEL_CATALOG.py    # 📋 Pure model registry (40 models, 11 families)
+│   └── inference.py        # 🎭 Orchestration with dynamic loading
+├── models/
+│   ├── base.py            # 🔧 Abstract ModelWrapper interface
+│   ├── luma_inference.py  # LumaInference + LumaWrapper
+│   ├── veo_inference.py   # VeoService + VeoWrapper 
+│   └── ...                # Each provider: Service + Wrapper
+```
+
+**Key Benefits:**
+- **Dynamic Loading**: Models loaded on-demand from catalog
+- **Family Organization**: Models grouped by provider families
+- **Consistent Interface**: All wrappers inherit from `ModelWrapper`
+- **Easy Extension**: Add models without touching core files
+
 ## Project Structure
 
 ```
 VMEvalKit/
 ├── vmevalkit/
-│   ├── runner/         # Inference runners
-│   ├── models/         # Model implementations
+│   ├── runner/         # Inference runners + model catalog
+│   ├── models/         # Model implementations (service + wrapper)
 │   ├── core/           # Evaluation framework
 │   ├── tasks/          # Task definitions
 │   └── utils/          # Utilities
@@ -180,19 +203,26 @@ git submodule update --init --recursive
 
 ### Adding New Models
 
-VMEvalKit supports 36+ models across 9 providers and is designed to easily accommodate new models.
+VMEvalKit supports 40 models across 11 families with a **modular architecture** designed for easy extension.
 
 **Requirements:**
 - Model must support **both image + text input** for reasoning evaluation
-- Follow the unified inference interface
+- Inherit from `ModelWrapper` base class for consistent interface
 
 **Quick Steps:**
-1. Create wrapper class in `vmevalkit/models/{provider}_inference.py`
-2. Register in `vmevalkit/runner/inference.py` 
+1. Create service + wrapper in `vmevalkit/models/{provider}_inference.py`
+2. Register in `vmevalkit/runner/MODEL_CATALOG.py` (pure data)
 3. Update imports in `vmevalkit/models/__init__.py`
 
+**Key Features:**
+- **Dynamic Loading**: No need to modify `inference.py`
+- **Base Class**: Inherit from `ModelWrapper` for consistency
+- **Family Organization**: Models grouped by provider families
+- **String Module Paths**: Flexible loading without circular imports
+
 **Documentation:**
-- 📚 **Complete Guide**: [docs/ADDING_MODELS.md](docs/ADDING_MODELS.md)
+- 📚 **Adding Models Guide**: [docs/ADDING_MODELS.md](docs/ADDING_MODELS.md)
+- 🏗️ **Architecture Details**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 Both API-based and open-source (submodule) integration patterns are supported.
 

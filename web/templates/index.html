@@ -5,7 +5,6 @@
 {% block content %}
 <div class="page-header">
     <h1>VMEvalKit Results</h1>
-    <p class="subtitle">{{ overview.total_models }} models · {{ overview.total_domains }} domains · {{ overview.total_inferences }} inferences</p>
     
     <!-- Project Introduction Box -->
     <div class="project-intro-box">
@@ -15,6 +14,8 @@
         <div class="intro-content">
             <p><strong>About:</strong> This dashboard displays results from evaluating video generation models on cognitive reasoning tasks including maze solving, chess puzzles, Raven's matrices, 3D rotation, and Sudoku problems.</p>
             
+            <p><strong>Dataset:</strong> {{ overview.total_models }} models · {{ overview.total_domains }} domains · {{ overview.total_inferences }} inferences</p>
+            
             {% if run_info %}
             <div class="run-info">
                 <div class="run-info-grid">
@@ -22,19 +23,7 @@
                         <strong>🚀 Experiment Run:</strong> {{ run_info.experiment_name }}
                     </div>
                     <div class="run-info-item">
-                        <strong>📅 Started:</strong> {{ run_info.start_time.strftime('%Y-%m-%d %H:%M') }}
-                    </div>
-                    <div class="run-info-item">
                         <strong>⏱️ Completed:</strong> {{ run_info.end_time.strftime('%Y-%m-%d %H:%M') }}
-                    </div>
-                    <div class="run-info-item">
-                        <strong>⚡ Duration:</strong> {{ "%.1f"|format(run_info.duration_hours) }} hours
-                    </div>
-                    <div class="run-info-item">
-                        <strong>✅ Success Rate:</strong> {{ run_info.successful_inferences }}/{{ run_info.total_inferences }} ({{ "%.1f"|format((run_info.successful_inferences / run_info.total_inferences * 100) if run_info.total_inferences > 0 else 0) }}%)
-                    </div>
-                    <div class="run-info-item">
-                        <strong>🤖 Models Tested:</strong> {{ run_info.models_tested|length }} models
                     </div>
                 </div>
             </div>
@@ -42,8 +31,14 @@
             
             <div class="deployment-info">
                 <div class="deployment-links">
-                    <span><strong>🌐 Deployed at:</strong> <code>{{ deployment_info.local_address }}</code></span>
-                    <span><strong>📚 Source Code:</strong> <a href="{{ deployment_info.github_repo }}" target="_blank" rel="noopener">{{ deployment_info.github_repo }}</a></span>
+                    <div class="deployment-item">
+                        <strong>🌐 Deployed at:</strong><br>
+                        <code>http://192.168.1.73:5000</code>
+                    </div>
+                    <div class="deployment-item">
+                        <strong>📚 Source Code:</strong><br>
+                        <a href="https://github.com/hokindeng/VMEvalKit" target="_blank" rel="noopener">https://github.com/hokindeng/VMEvalKit</a>
+                    </div>
                 </div>
             </div>
         </div>

@@ -372,7 +372,8 @@ def get_comparison_data(results: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 def load_run_information(output_dir: Path) -> Optional[Dict[str, Any]]:
     """
-    Load run information from inference_log.json.
+    Load minimal run information from inference_log.json.
+    Only loads experiment name and completion time.
     
     Args:
         output_dir: Base output directory containing inference_log.json
@@ -394,35 +395,19 @@ def load_run_information(output_dir: Path) -> Optional[Dict[str, Any]]:
             logger.warning("Inference log is empty")
             return None
         
-        # Get first and last entries to determine run timeframe
-        first_entry = log_entries[0]
+        # Get last entry for completion time
         last_entry = log_entries[-1]
         
-        # Parse timestamps
+        # Parse completion timestamp
         try:
-            start_time = datetime.fromisoformat(first_entry['timestamp'])
             end_time = datetime.fromisoformat(last_entry['timestamp'])
         except (ValueError, KeyError) as e:
-            logger.warning(f"Failed to parse timestamps: {e}")
-            start_time = end_time = datetime.now()
-        
-        # Calculate statistics
-        total_inferences = len(log_entries)
-        successful = sum(1 for entry in log_entries if entry.get('status') == 'success')
-        failed = total_inferences - successful
-        
-        # Get unique models
-        models = sorted(set(entry.get('model', 'unknown') for entry in log_entries))
+            logger.warning(f"Failed to parse completion timestamp: {e}")
+            end_time = datetime.now()
         
         return {
             'experiment_name': 'pilot_experiment',
-            'start_time': start_time,
-            'end_time': end_time,
-            'total_inferences': total_inferences,
-            'successful_inferences': successful,
-            'failed_inferences': failed,
-            'models_tested': models,
-            'duration_hours': (end_time - start_time).total_seconds() / 3600
+            'end_time': end_time
         }
         
     except (json.JSONDecodeError, IOError) as e:
