@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - VMEvalKit{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>VMEvalKit Results</h1>
+    <p class="subtitle">{{ overview.total_models }} models · {{ overview.total_domains }} domains · {{ overview.total_inferences }} inferences</p>
+</div>
+
+<!-- Hierarchical View: Models → Domains → Tasks -->
+{% for model, domains in hierarchy.items() %}
+<section class="model-section">
+    <div class="model-header" onclick="toggleSection('model-{{ loop.index }}')">
+                <h2>
+                    <span class="expand-icon" id="icon-model-{{ loop.index }}">▶</span>
+            🤖 {{ model }}
+            <span class="badge">{{ domains.values()|map('length')|sum }} tasks</span>
+        </h2>
+    </div>
+    
+    <div class="model-content" id="model-{{ loop.index }}" style="display: none;">
+        {% for domain, tasks in domains.items() %}
+        <div class="domain-section">
+            <div class="domain-header" onclick="toggleSection('domain-{{ loop.index0 }}-{{ loop.index }}')">
+                <h3>
+                    <span class="expand-icon" id="icon-domain-{{ loop.index0 }}-{{ loop.index }}">▶</span>
+                    {% if domain == 'chess' %}♟️{% elif domain == 'maze' %}🌀{% elif domain == 'raven' %}🧩{% elif domain == 'rotation' %}🔄{% elif domain == 'sudoku' %}🔢{% else %}📝{% endif %}
+                    {{ domain|title }}
+                    <span class="badge">{{ tasks|length }} tasks</span>
+                </h3>
+            </div>
+            
+            <div class="domain-content" id="domain-{{ loop.index0 }}-{{ loop.index }}" style="display: none;">
+                <div class="tasks-grid">
+                    {% for task in tasks %}
+                    <div class="task-card">
+                        <!-- Task Header -->
+                        <div class="task-header">
+                            <span class="task-id">{{ task.task_id }}</span>
+                        </div>
+                        
+                        <!-- Input Image -->
+                        {% if task.first_frame %}
+                        <div class="task-image-section">
+                            <h4>Input Image</h4>
+                            <img src="/image/{{ task.first_frame.replace(config.OUTPUT_DIR|string, '').lstrip('/') }}" 
+                                 alt="Input" class="task-image" loading="lazy">
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Prompt -->
+                        {% if task.prompt %}
+                        <div class="task-prompt-section">
+                            <h4>Prompt</h4>
+                            <p class="task-prompt">{{ task.prompt }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Output Video -->
+                        {% if task.video_path %}
+                        <div class="task-video-section">
+                            <h4>Generated Video</h4>
+                            <video controls preload="none" class="task-video" loading="lazy">
+                                <source src="/video/{{ task.video_path.replace(config.OUTPUT_DIR|string, '').lstrip('/') }}" type="video/mp4">
+                                Your browser does not support video playback.
+                            </video>
+                        </div>
+                        {% endif %}
+                        
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endfor %}
+
+{% if not hierarchy %}
+<div class="empty-state">
+    <div class="empty-icon">📭</div>
+    <h2>No Results Found</h2>
+    <p>Run some experiments first to see results here!</p>
+    <pre>python examples/experiment_2025-10-14.py</pre>
+</div>
+{% endif %}
+
+<script>
+function toggleSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    const icon = document.getElementById('icon-' + sectionId);
+    
+    if (section.style.display === 'none') {
+        section.style.display = 'block';
+        icon.textContent = '▼';
+    } else {
+        section.style.display = 'none';
+        icon.textContent = '▶';
+    }
+}
+
+// Lazy load videos as they come into view
+document.addEventListener('DOMContentLoaded', function() {
+    if ('IntersectionObserver' in window) {
+        const videoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const video = entry.target;
+                    if (video.preload === 'none') {
+                        video.preload = 'metadata';
+                    }
+                    videoObserver.unobserve(video);
+                }
+            });
+        }, {
+            rootMargin: '100px'
+        });
+        
+        document.querySelectorAll('video[preload="none"]').forEach(video => {
+            videoObserver.observe(video);
+        });
+    }
+});
+</script>
+
+{% endblock %}
