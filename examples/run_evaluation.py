@@ -29,8 +29,9 @@ logger = logging.getLogger(__name__)
 
 
 def example_human_evaluation(annotator_name="John Doe", port=7860, share=False):
-    """Example of running human evaluation."""
+    """Example of running human evaluation on entire pilot experiment."""
     print("\n=== Human Evaluation Example ===")
+    print(f"Evaluating ENTIRE pilot experiment with annotator: {annotator_name}")
     
     # Create evaluator
     evaluator = HumanEvaluator(
@@ -39,14 +40,16 @@ def example_human_evaluation(annotator_name="John Doe", port=7860, share=False):
     )
     
     # Launch interface (this will block until closed)
-    print(f"Launching human evaluation interface for annotator: {annotator_name}")
+    print(f"Launching human evaluation interface...")
     print(f"Open http://localhost:{port} in your browser")
+    print(f"Will evaluate ALL models and ALL tasks in pilot_experiment")
     evaluator.launch_interface(port=port, share=share)
 
 
 def example_gpt4o_evaluation():
-    """Example of running GPT-4O evaluation."""
+    """Example of running GPT-4O evaluation on entire pilot experiment."""
     print("\n=== GPT-4O Evaluation Example ===")
+    print("Evaluating ENTIRE pilot experiment with GPT-4O")
     
     # Check for API key
     if not os.getenv("OPENAI_API_KEY"):
@@ -60,26 +63,8 @@ def example_gpt4o_evaluation():
         temperature=0.1
     )
     
-    # Example 1: Evaluate a specific model
-    print("\nEvaluating specific model: luma-ray-2")
-    try:
-        results = evaluator.evaluate_model("luma-ray-2")
-        
-        # Count evaluations
-        total_tasks = 0
-        evaluated_tasks = 0
-        for task_type, tasks in results["evaluations"].items():
-            for task_id, result in tasks.items():
-                total_tasks += 1
-                if "error" not in result:
-                    evaluated_tasks += 1
-        
-        print(f"Evaluation complete. {evaluated_tasks}/{total_tasks} tasks evaluated.")
-    except Exception as e:
-        print(f"Error: {e}")
-    
-    # Example 2: Evaluate all models
-    print("\nEvaluating all models...")
+    # Evaluate all models and tasks
+    print("\nEvaluating ALL models and ALL tasks in pilot_experiment...")
     all_results = evaluator.evaluate_all_models()
     
     # Print basic counts for each model
@@ -95,11 +80,14 @@ def example_gpt4o_evaluation():
             
             print(f"\n{model_name}:")
             print(f"  - Tasks evaluated: {evaluated_tasks}/{total_tasks}")
+    
+    print("\nEND-TO-END EVALUATION COMPLETE!")
 
 
 def example_custom_evaluation():
-    """Example of using the evaluation API programmatically."""
+    """Example of creating a custom end-to-end evaluation."""
     print("\n=== Custom Evaluation Example ===")
+    print("Creating custom evaluator for ENTIRE pilot experiment")
     
     from vmevalkit.eval import BaseEvaluator
     
@@ -122,20 +110,23 @@ def example_custom_evaluation():
     # Use the custom evaluator
     evaluator = SimpleEvaluator(experiment_name="pilot_experiment")
     
-    # Evaluate a model
-    print("Running custom evaluation...")
-    results = evaluator.evaluate_model("luma-ray-2")
+    # Evaluate ALL models and tasks
+    print("Running custom evaluation on entire pilot experiment...")
+    all_results = evaluator.evaluate_all_models()
     
-    # Count results
-    total_tasks = 0
-    evaluated_tasks = 0
-    for task_type, tasks in results["evaluations"].items():
-        for task_id, result in tasks.items():
-            total_tasks += 1
-            if "error" not in result:
-                evaluated_tasks += 1
+    # Count results across all models
+    total_tasks_all = 0
+    evaluated_tasks_all = 0
+    for model_name, results in all_results.items():
+        if "evaluations" in results:
+            for task_type, tasks in results["evaluations"].items():
+                for task_id, result in tasks.items():
+                    total_tasks_all += 1
+                    if "error" not in result:
+                        evaluated_tasks_all += 1
     
-    print(f"Custom evaluation complete: {evaluated_tasks}/{total_tasks} tasks evaluated")
+    print(f"CUSTOM END-TO-END EVALUATION COMPLETE!")
+    print(f"Total evaluated: {evaluated_tasks_all}/{total_tasks_all} tasks across all models")
 
 
 def main():
@@ -143,21 +134,23 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(
-        description="VMEvalKit Evaluation Runner",
+        description="VMEvalKit End-to-End Evaluation Runner",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Examples:
-  # Run human evaluation
+End-to-End Evaluation Examples:
+  # Run human evaluation on ENTIRE pilot experiment
   python run_evaluation.py human
   
   # Run human evaluation with custom annotator
   python run_evaluation.py human --annotator "Jane Smith"
   
-  # Run GPT-4O evaluation
+  # Run GPT-4O evaluation on ENTIRE pilot experiment
   python run_evaluation.py gpt4o
   
   # Demonstrate custom evaluator
   python run_evaluation.py custom
+
+Note: All methods evaluate the complete pilot experiment (all models, all tasks).
         """
     )
     

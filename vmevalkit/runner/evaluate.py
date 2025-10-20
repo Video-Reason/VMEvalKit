@@ -32,9 +32,7 @@ def run_human_evaluation(
     output_dir: str = "data/evaluations",
     annotator_name: str = "anonymous",
     port: int = 7860,
-    share: bool = False,
-    models: Optional[List[str]] = None,
-    task_types: Optional[List[str]] = None
+    share: bool = False
 ):
     """Run human evaluation interface.
     
@@ -44,8 +42,6 @@ def run_human_evaluation(
         annotator_name: Name of the human annotator
         port: Port to run Gradio interface on
         share: Whether to create a public share link
-        models: List of models to filter to (None for all)
-        task_types: List of task types to filter to (None for all)
     """
     logger.info(f"Starting human evaluation for experiment: {experiment_name}")
     logger.info(f"Annotator: {annotator_name}")
@@ -53,9 +49,7 @@ def run_human_evaluation(
     evaluator = HumanEvaluator(
         output_dir=output_dir,
         experiment_name=experiment_name,
-        annotator_name=annotator_name,
-        models_filter=models,
-        task_types_filter=task_types
+        annotator_name=annotator_name
     )
     
     # Launch the Gradio interface
@@ -66,20 +60,14 @@ def run_human_evaluation(
 def run_gpt4o_evaluation(
     experiment_name: str = "pilot_experiment",
     output_dir: str = "data/evaluations",
-    models: Optional[List[str]] = None,
-    task_types: Optional[List[str]] = None,
-    task_ids: Optional[List[str]] = None,
     max_frames: int = 8,
     temperature: float = 0.1
 ):
-    """Run GPT-4O automatic evaluation.
+    """Run GPT-4O automatic evaluation on entire experiment.
     
     Args:
         experiment_name: Name of the experiment to evaluate
         output_dir: Directory to save evaluation results
-        models: List of model names to evaluate (None for all)
-        task_types: List of task types to evaluate (None for all)
-        task_ids: List of task IDs to evaluate (None for all)
         max_frames: Maximum frames to extract per video
         temperature: Temperature for GPT-4O responses
     """
@@ -97,42 +85,25 @@ def run_gpt4o_evaluation(
         temperature=temperature
     )
     
-    # Use selective evaluation if any filters are provided
-    if models or task_types or task_ids:
-        logger.info("Running selective evaluation with filters:")
-        if models:
-            logger.info(f"  Models: {models}")
-        if task_types:
-            logger.info(f"  Task types: {task_types}")
-        if task_ids:
-            logger.info(f"  Task IDs: {task_ids}")
+    # Evaluate all models and tasks in the experiment
+    logger.info("Evaluating all models and tasks in experiment")
+    results = evaluator.evaluate_all_models()
+    logger.info("Completed evaluation for all models")
+    
+    # Print basic counts
+    for model_name, model_results in results.items():
+        if "evaluations" in model_results:
+            total_tasks = 0
+            evaluated_tasks = 0
+            for task_type, tasks in model_results["evaluations"].items():
+                for task_id, result in tasks.items():
+                    total_tasks += 1
+                    if "error" not in result:
+                        evaluated_tasks += 1
             
-        results = evaluator.evaluate_selective(
-            models=models,
-            task_types=task_types,
-            task_ids=task_ids
-        )
-        logger.info("Completed selective evaluation")
-    else:
-        # Evaluate all models and tasks
-        logger.info("Evaluating all models and tasks in experiment")
-        results = evaluator.evaluate_all_models()
-        logger.info("Completed evaluation for all models")
-        
-        # Print basic counts
-        for model_name, model_results in results.items():
-            if "evaluations" in model_results:
-                total_tasks = 0
-                evaluated_tasks = 0
-                for task_type, tasks in model_results["evaluations"].items():
-                    for task_id, result in tasks.items():
-                        total_tasks += 1
-                        if "error" not in result:
-                            evaluated_tasks += 1
-                
-                logger.info(f"\n{model_name}:")
-                logger.info(f"  Total tasks: {total_tasks}")
-                logger.info(f"  Evaluated: {evaluated_tasks}")
+            logger.info(f"\n{model_name}:")
+            logger.info(f"  Total tasks: {total_tasks}")
+            logger.info(f"  Evaluated: {evaluated_tasks}")
 
 
 def main():
@@ -190,18 +161,6 @@ Examples:
         action='store_true',
         help='Create a public share link for the interface'
     )
-    human_parser.add_argument(
-        '--task-types', '-t',
-        type=str,
-        nargs='+',
-        help='Filter to specific task types (e.g., chess_task maze_task)'
-    )
-    human_parser.add_argument(
-        '--models', '-m',
-        type=str,
-        nargs='+',
-        help='Filter to specific models'
-    )
     
     # GPT-4O evaluation subcommand
     gpt4o_parser = subparsers.add_parser('gpt4o', help='Run GPT-4O automatic evaluation')
@@ -216,24 +175,6 @@ Examples:
         type=str,
         default='data/evaluations',
         help='Directory to save evaluation results'
-    )
-    gpt4o_parser.add_argument(
-        '--models', '-m',
-        type=str,
-        nargs='+',
-        help='Specific models to evaluate (default: all models)'
-    )
-    gpt4o_parser.add_argument(
-        '--task-types', '-t',
-        type=str,
-        nargs='+',
-        help='Specific task types to evaluate (e.g., chess_task maze_task)'
-    )
-    gpt4o_parser.add_argument(
-        '--task-ids',
-        type=str,
-        nargs='+',
-        help='Specific task IDs to evaluate (e.g., chess_0001 maze_0005)'
     )
     gpt4o_parser.add_argument(
         '--max-frames',
@@ -261,17 +202,12 @@ Examples:
             output_dir=args.output_dir,
             annotator_name=args.annotator,
             port=args.port,
-            share=args.share,
-            models=args.models,
-            task_types=args.task_types
+            share=args.share
         )
     elif args.method == 'gpt4o':
         run_gpt4o_evaluation(
             experiment_name=args.experiment,
             output_dir=args.output_dir,
-            models=args.models,
-            task_types=args.task_types,
-            task_ids=args.task_ids,
             max_frames=args.max_frames,
             temperature=args.temperature
         )

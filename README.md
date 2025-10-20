@@ -290,23 +290,14 @@ VMEvalKit provides two evaluation methods to assess video generation models' rea
 Interactive web interface for manual assessment:
 
 ```bash
-# Launch human evaluation interface with default settings (all models, all tasks)
+# Launch human evaluation interface - evaluates entire pilot experiment
 python examples/run_evaluation.py human
 
 # With custom annotator name
 python examples/run_evaluation.py human --annotator "Jane Smith"
 
-# Filter to specific models only
-python examples/run_evaluation.py human --models luma-ray-2 openai-sora-2
-
-# Filter to specific task types only
-python examples/run_evaluation.py human --task-types chess_task maze_task
-
-# Combine filters (specific models AND task types)
-python examples/run_evaluation.py human --models luma-ray-2 --task-types chess_task
-
-# With public share link and custom port
-python examples/run_evaluation.py human --share --port 8080
+# With public share link
+python examples/run_evaluation.py human --share
 ```
 
 **Features:**
@@ -323,23 +314,11 @@ Automatic evaluation using OpenAI's vision model:
 # Set API key
 export OPENAI_API_KEY=your_api_key
 
-# Evaluate all models and tasks
+# Evaluate entire pilot experiment
 python examples/run_evaluation.py gpt4o
-
-# Evaluate specific models only
-python examples/run_evaluation.py gpt4o --models luma-ray-2 openai-sora-2
-
-# Evaluate specific task types only  
-python examples/run_evaluation.py gpt4o --task-types chess_task maze_task
-
-# Evaluate specific task IDs only
-python examples/run_evaluation.py gpt4o --task-ids chess_0001 chess_0002 maze_0005
-
-# Combine filters for precise control
-python examples/run_evaluation.py gpt4o --models luma-ray-2 --task-types chess_task --task-ids chess_0001
 ```
 
-**Note:** The evaluation system automatically **skips already evaluated tasks**, so you can safely re-run commands to resume evaluation.
+**Note:** The evaluation system automatically **skips already evaluated tasks**, so you can safely re-run the command to resume evaluation.
 
 **Features:**
 - Multi-frame video analysis

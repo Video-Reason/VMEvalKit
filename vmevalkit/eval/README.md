@@ -16,17 +16,11 @@ Interactive web interface for human annotation of generated videos.
 
 **Usage:**
 ```bash
-# Run human evaluation interface (all models, all tasks)
+# Run human evaluation interface (evaluates entire pilot experiment)
 python examples/run_evaluation.py human
 
 # With custom annotator
 python examples/run_evaluation.py human --annotator "Your Name"
-
-# Filter to specific models
-python examples/run_evaluation.py human --models luma-ray-2
-
-# Filter to specific task types
-python examples/run_evaluation.py human --task-types chess_task maze_task
 
 # With public share link
 python examples/run_evaluation.py human --share
@@ -44,17 +38,8 @@ Automatic evaluation using OpenAI's GPT-4O vision model.
 
 **Usage:**
 ```bash
-# Evaluate all models and tasks  
+# Evaluate entire pilot experiment (all models, all tasks)
 python examples/run_evaluation.py gpt4o
-
-# Evaluate specific models
-python examples/run_evaluation.py gpt4o --models luma-ray-2 openai-sora-2
-
-# Evaluate specific task types
-python examples/run_evaluation.py gpt4o --task-types chess_task
-
-# Evaluate specific task IDs  
-python examples/run_evaluation.py gpt4o --task-ids chess_0001 maze_0005
 ```
 
 **Resume Capability:** Automatically skips already evaluated tasks - safe to re-run.
