@@ -3,12 +3,12 @@
 VMEvalKit Evaluation Runner
 
 This script provides easy access to VMEvalKit's evaluation methods:
-- Human evaluation with Gradio interface
+- Human evaluation with Gradio interface (defaults to share=True)
 - GPT-4O automatic evaluation
 - Custom evaluation examples
 
 Usage:
-    python run_evaluation.py human [--annotator NAME] [--port PORT] [--share]
+    python run_evaluation.py human
     python run_evaluation.py gpt4o
     python run_evaluation.py custom
 """
@@ -28,22 +28,21 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def example_human_evaluation(annotator_name="John Doe", port=7860, share=False):
+def example_human_evaluation():
     """Example of running human evaluation on entire pilot experiment."""
     print("\n=== Human Evaluation Example ===")
-    print(f"Evaluating ENTIRE pilot experiment with annotator: {annotator_name}")
+    print(f"Evaluating ENTIRE pilot experiment")
     
-    # Create evaluator
+    # Create evaluator with default annotator name
     evaluator = HumanEvaluator(
         experiment_name="pilot_experiment",
-        annotator_name=annotator_name
+        annotator_name="Annotator"
     )
     
-    # Launch interface (this will block until closed)
+    # Launch interface with defaults (share=True, port=7860)
     print(f"Launching human evaluation interface...")
-    print(f"Open http://localhost:{port} in your browser")
     print(f"Will evaluate ALL models and ALL tasks in pilot_experiment")
-    evaluator.launch_interface(port=port, share=share)
+    evaluator.launch_interface(port=7860, share=True)
 
 
 def example_gpt4o_evaluation():
@@ -141,9 +140,6 @@ End-to-End Evaluation Examples:
   # Run human evaluation on ENTIRE pilot experiment
   python run_evaluation.py human
   
-  # Run human evaluation with custom annotator
-  python run_evaluation.py human --annotator "Jane Smith"
-  
   # Run GPT-4O evaluation on ENTIRE pilot experiment
   python run_evaluation.py gpt4o
   
@@ -160,27 +156,6 @@ Note: All methods evaluate the complete pilot experiment (all models, all tasks)
         help='Evaluation method to use'
     )
     
-    # Human evaluation specific arguments
-    parser.add_argument(
-        '--annotator',
-        type=str,
-        default='John Doe',
-        help='Annotator name for human evaluation (default: John Doe)'
-    )
-    
-    parser.add_argument(
-        '--port',
-        type=int,
-        default=7860,
-        help='Port for Gradio interface (default: 7860)'
-    )
-    
-    parser.add_argument(
-        '--share',
-        action='store_true',
-        help='Create a public share link for the interface'
-    )
-    
     args = parser.parse_args()
     
     # Check if pilot_experiment exists
@@ -190,11 +165,7 @@ Note: All methods evaluate the complete pilot experiment (all models, all tasks)
     
     # Run the selected evaluation method
     if args.method == "human":
-        example_human_evaluation(
-            annotator_name=args.annotator,
-            port=args.port,
-            share=args.share
-        )
+        example_human_evaluation()
     elif args.method == "gpt4o":
         example_gpt4o_evaluation()
     elif args.method == "custom":

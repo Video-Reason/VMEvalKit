@@ -17,13 +17,8 @@ Interactive web interface for human annotation of generated videos.
 **Usage:**
 ```bash
 # Run human evaluation interface (evaluates entire pilot experiment)
+# Automatically creates a public share link for easy access
 python examples/run_evaluation.py human
-
-# With custom annotator
-python examples/run_evaluation.py human --annotator "Your Name"
-
-# With public share link
-python examples/run_evaluation.py human --share
 ```
 
 ### 2. GPT-4O Evaluator
@@ -129,9 +124,10 @@ Automatic evaluation using GPT-4O.
 ## Tips
 
 1. **For Human Evaluation:**
-   - Use consistent annotator names for tracking
+   - The interface automatically creates a public share link
    - Complete evaluations in one session when possible
    - Add detailed comments for edge cases
+   - Default annotator name is "Annotator" 
 
 2. **For GPT-4O Evaluation:**
    - Monitor API costs for large experiments
@@ -141,4 +137,4 @@ Automatic evaluation using GPT-4O.
 3. **General:**
    - Run evaluations after all inference is complete
    - Compare human and GPT-4O results for validation
-   - Use `python examples/run_evaluation.py --help` for all options
+   - Usage is simple: `python examples/run_evaluation.py <method>`
