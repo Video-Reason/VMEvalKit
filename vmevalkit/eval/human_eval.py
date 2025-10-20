@@ -54,7 +54,11 @@ class HumanEvaluator:
                             "task_id": task_dir.name
                         })
         
-        logger.info(f"Loaded {len(self.evaluation_queue)} tasks to evaluate ({skipped_count} already evaluated, skipped)")
+        total_tasks = len(self.evaluation_queue) + skipped_count
+        logger.info(f"Evaluation Queue Status:")
+        logger.info(f"  - Total tasks in experiment: {total_tasks}")
+        logger.info(f"  - Already evaluated: {skipped_count}")
+        logger.info(f"  - Remaining in queue: {len(self.evaluation_queue)}")
     
     def _get_task_data(self, model_name: str, task_type: str, task_id: str) -> Optional[Dict[str, Any]]:
         """Get data for a specific task."""
@@ -114,7 +118,10 @@ class HumanEvaluator:
                 annotator_btn = gr.Button("Set Annotator", variant="primary")
             
             annotator_status = gr.Markdown(f"Current annotator: **{self.annotator_name}**")
-            progress_text = gr.Markdown(f"Progress: 0/{len(self.evaluation_queue)} tasks")
+            
+            with gr.Row():
+                progress_text = gr.Markdown(f"Progress: 0/{len(self.evaluation_queue)} tasks remaining")
+                refresh_btn = gr.Button("🔄 Refresh Queue", scale=0)
             
             with gr.Row():
                 model_info = gr.Textbox(label="Model", interactive=False)
@@ -157,7 +164,7 @@ class HumanEvaluator:
                     return {
                         model_info: "", task_info: "", input_image: None, prompt_text: "",
                         expected_output: None, video_player: None, correctness_score: None, comments: "",
-                        progress_text: f"Progress: {index}/{len(self.evaluation_queue)} tasks",
+                        progress_text: f"Progress: {index + 1}/{len(self.evaluation_queue)} tasks remaining",
                         status_text: "No more tasks to evaluate!"
                     }
                 
@@ -176,7 +183,7 @@ class HumanEvaluator:
                     if_has_final: has_final,
                     expected_output: task_data["final_frame"] if has_final else None,
                     video_player: task_data["video_path"],
-                    progress_text: f"Progress: {index}/{len(self.evaluation_queue)} tasks",
+                    progress_text: f"Progress: {index + 1}/{len(self.evaluation_queue)} tasks remaining",
                     status_text: "Task loaded successfully",
                     correctness_score: None,
                     comments: ""
@@ -214,8 +221,18 @@ class HumanEvaluator:
                 updates[status_text] = "Evaluation saved successfully!"
                 return updates
             
+            def refresh_queue():
+                """Reload the evaluation queue to reflect current state."""
+                self._load_evaluation_queue()
+                self.current_index = 0
+                updates = update_display(0)
+                updates[progress_text] = f"Progress: 1/{len(self.evaluation_queue)} tasks remaining"
+                updates[status_text] = f"Queue refreshed! {len(self.evaluation_queue)} tasks remaining."
+                return updates
+            
             # Connect buttons
             annotator_btn.click(set_annotator, inputs=[annotator_input], outputs=[annotator_status])
+            refresh_btn.click(refresh_queue, outputs=ui_outputs)
             prev_btn.click(lambda: navigate(-1), outputs=ui_outputs)
             next_btn.click(lambda: navigate(1), outputs=ui_outputs)
             submit_btn.click(submit_evaluation, inputs=[correctness_score, comments], outputs=ui_outputs)
