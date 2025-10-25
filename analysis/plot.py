@@ -37,8 +37,18 @@ DOMAIN_COLORS = {
     'sudoku': '#6A994E'     # Green
 }
 
-# Model signature colors (will be assigned dynamically)
-MODEL_COLORS = {}
+# Define the domain order
+DOMAIN_ORDER = ['sudoku', 'raven', 'maze', 'rotation', 'chess']
+
+# Model signature colors (predefined for consistency)
+MODEL_COLORS = {
+    'openai-sora-2': '#1f77b4',        # Blue
+    'veo-3.0-generate': '#ff7f0e',     # Orange  
+    'veo-3.1-720p': '#2ca02c',         # Green
+    'runway-gen4-turbo': '#d62728',    # Red
+    'wavespeed-wan-2.2-i2v-720p': '#9467bd',  # Purple
+    'luma-ray-2': '#8c564b'            # Brown
+}
 
 def load_evaluation_data(eval_folder: Path) -> list:
     """Load all evaluation JSON files from the specified folder."""
@@ -153,8 +163,12 @@ def create_overall_model_figure(overall_df: pd.DataFrame):
     models = overall_df["model"].values
     success_rates = overall_df["success_rate"].values
     
-    # Create gradient colors based on success rate
+    # Option 1: Use gradient colors based on success rate (shows performance visually)
     colors = [SUCCESS_CMAP(rate/100) for rate in success_rates]
+    
+    # Option 2: Use fixed model colors for consistency (uncomment to use)
+    # colors = [MODEL_COLORS.get(model, MAIN_PALETTE[i % len(MAIN_PALETTE)])
+    #           for i, model in enumerate(models)]
     
     # Create VERTICAL bar chart
     x_pos = np.arange(len(models))
@@ -191,7 +205,7 @@ def create_overall_model_figure(overall_df: pd.DataFrame):
     for i, (bar, row) in enumerate(zip(bars, overall_df.itertuples())):
         rate = row.success_rate
         # Success rate on top of bar
-        ax.text(i, rate + 1, f'{rate:.1f}%', 
+        ax.text(i, rate + 1, f'{rate:.2f}%', 
                ha='center', va='bottom', fontsize=10, 
                fontweight='bold', color='#333333')
         
@@ -202,12 +216,20 @@ def create_overall_model_figure(overall_df: pd.DataFrame):
     # Save figure
     figures_dir = Path(__file__).parent / "figures"
     figures_dir.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
-    output_path = figures_dir / "overall_model_ranking.png"
-    plt.savefig(output_path, dpi=300, bbox_inches='tight',
+    
+    # Save PNG
+    output_path_png = figures_dir / "overall_model_ranking.png"
+    plt.savefig(output_path_png, dpi=300, bbox_inches='tight',
                facecolor='white', edgecolor='none')
+    
+    # Save EPS
+    output_path_eps = figures_dir / "overall_model_ranking.eps"
+    plt.savefig(output_path_eps, format='eps', bbox_inches='tight',
+               facecolor='white', edgecolor='none')
+    
     plt.close()
     
-    print(f"📊 Overall model ranking figure saved to: {output_path}")
+    print(f"📊 Overall model ranking figure saved to: {output_path_png} and {output_path_eps}")
 
 def create_overall_domain_figure(domain_df: pd.DataFrame):
     """Create a clean bar chart showing overall domain performance."""
@@ -230,10 +252,11 @@ def create_overall_domain_figure(domain_df: pd.DataFrame):
         "success_rate": "mean",
         "total_tasks": "sum",
         "correct_tasks": "sum"
-    }).sort_values("success_rate", ascending=False)
+    })
     
-    domains = domain_stats.index
-    success_rates = domain_stats["success_rate"].values
+    # Use the predefined domain order
+    domains = [d for d in DOMAIN_ORDER if d in domain_stats.index]
+    success_rates = [domain_stats.loc[d, "success_rate"] for d in domains]
     
     # Use domain-specific colors
     colors = [DOMAIN_COLORS.get(d, MAIN_PALETTE[i % len(MAIN_PALETTE)]) 
@@ -273,7 +296,7 @@ def create_overall_domain_figure(domain_df: pd.DataFrame):
     # Add value labels and difficulty indicators
     for i, (bar, rate, domain) in enumerate(zip(bars, success_rates, domains)):
         # Success rate on top
-        ax.text(i, rate + 1, f'{rate:.1f}%', 
+        ax.text(i, rate + 1, f'{rate:.2f}%', 
                ha='center', va='bottom', fontsize=11,
                fontweight='bold', color='#333333')
         
@@ -291,67 +314,86 @@ def create_overall_domain_figure(domain_df: pd.DataFrame):
     # Save figure
     figures_dir = Path(__file__).parent / "figures"
     figures_dir.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
-    output_path = figures_dir / "overall_domain_difficulty.png"
-    plt.savefig(output_path, dpi=300, bbox_inches='tight',
+    
+    # Save PNG
+    output_path_png = figures_dir / "overall_domain_difficulty.png"
+    plt.savefig(output_path_png, dpi=300, bbox_inches='tight',
                facecolor='white', edgecolor='none')
+    
+    # Save EPS
+    output_path_eps = figures_dir / "overall_domain_difficulty.eps"
+    plt.savefig(output_path_eps, format='eps', bbox_inches='tight',
+               facecolor='white', edgecolor='none')
+    
     plt.close()
     
-    print(f"📊 Overall domain difficulty figure saved to: {output_path}")
+    print(f"📊 Overall domain difficulty figure saved to: {output_path_png} and {output_path_eps}")
 
-def create_individual_model_plots(domain_df: pd.DataFrame, overall_df: pd.DataFrame):
-    """Create clean individual bar plots for each model's performance across domains."""
+def create_model_comparison_grid(domain_df: pd.DataFrame, overall_df: pd.DataFrame):
+    """Create a 2x3 subplot figure showing performance across domains for all 6 models."""
     
-    # Create figures/models directory
-    models_dir = Path(__file__).parent / "figures" / "models"
-    models_dir.mkdir(parents=True, exist_ok=True)
+    # Save directly to figures directory (no models subdirectory)
+    figures_dir = Path(__file__).parent / "figures"
     
     # Professional typography settings
     plt.rcParams['font.family'] = 'sans-serif'
     plt.rcParams['font.sans-serif'] = ['Arial', 'Helvetica', 'DejaVu Sans']
-    plt.rcParams['font.size'] = 11
-    plt.rcParams['axes.labelsize'] = 13
-    plt.rcParams['axes.titlesize'] = 15
-    plt.rcParams['xtick.labelsize'] = 11
-    plt.rcParams['ytick.labelsize'] = 11
+    plt.rcParams['font.size'] = 9
+    plt.rcParams['axes.labelsize'] = 10
+    plt.rcParams['axes.titlesize'] = 11
+    plt.rcParams['xtick.labelsize'] = 9
+    plt.rcParams['ytick.labelsize'] = 9
     
-    # Assign colors to models if not already assigned
+    # Get unique models 
     unique_models = overall_df["model"].unique()
-    for i, model in enumerate(unique_models):
-        if model not in MODEL_COLORS:
-            MODEL_COLORS[model] = MAIN_PALETTE[i % len(MAIN_PALETTE)]
     
-    # Create individual plot for each model - SIMPLE BAR CHART
-    for model in unique_models:
+    # Create 2x3 subplot figure for up to 6 models
+    fig, axes = plt.subplots(2, 3, figsize=(18, 10), facecolor='white')
+    fig.suptitle('Model Performance Comparison by Domain', 
+                 fontsize=16, fontweight='bold', y=1.02)
+    
+    # Flatten axes for easier iteration
+    axes = axes.flatten()
+    
+    # Plot all models (up to 6)
+    models_to_plot = unique_models[:min(6, len(unique_models))]
+    
+    for idx, model in enumerate(models_to_plot):
+        ax = axes[idx]
+        ax.set_facecolor('white')
+        
         model_data = domain_df[domain_df["model"] == model]
         
         if model_data.empty:
+            ax.axis('off')  # Hide empty subplot
             continue
         
-        # Create figure with white background - SINGLE PLOT ONLY
-        fig, ax = plt.subplots(figsize=(10, 6), facecolor='white')
-        ax.set_facecolor('white')
+        # Use predefined domain order
+        domains_list = []
+        success_rates_list = []
+        for domain in DOMAIN_ORDER:
+            domain_data = model_data[model_data["domain"] == domain]
+            if not domain_data.empty:
+                domains_list.append(domain)
+                success_rates_list.append(domain_data["success_rate"].values[0])
         
-        # Sort domains by success rate for better visual
-        model_data_sorted = model_data.sort_values("success_rate", ascending=False)
+        domains = np.array(domains_list)
+        success_rates = np.array(success_rates_list)
         
-        # Prepare data
-        domains = model_data_sorted["domain"].values
-        success_rates = model_data_sorted["success_rate"].values
-        
-        # Create gradient colors based on success rate
-        colors = [SUCCESS_CMAP(rate/100) for rate in success_rates]
+        # Use domain-specific colors for consistency
+        colors = [DOMAIN_COLORS.get(d, MAIN_PALETTE[i % len(MAIN_PALETTE)]) 
+                  for i, d in enumerate(domains)]
         
         # Create bar chart (vertical bars for domains)
         x_pos = np.arange(len(domains))
         bars = ax.bar(x_pos, success_rates, color=colors, 
-                      edgecolor='#333333', linewidth=1.2, width=0.7,
+                      edgecolor='#333333', linewidth=1.0, width=0.7,
                       alpha=0.85)
         
-        # Set labels and title
-        ax.set_xlabel('Domain', fontsize=13, color='#333333')
-        ax.set_ylabel('Success Rate', fontsize=13, color='#333333')
-        ax.set_title(f'{model} Performance by Domain', 
-                    fontsize=15, fontweight='bold', pad=20, color='#333333')
+        # Set labels and title - truncate long model names
+        model_display = model if len(model) <= 25 else model[:22] + "..."
+        ax.set_title(f'{model_display}', 
+                    fontsize=11, fontweight='bold', pad=10, color='#333333')
         
         # Set x-axis
         ax.set_xticks(x_pos)
@@ -361,6 +403,12 @@ def create_individual_model_plots(domain_df: pd.DataFrame, overall_df: pd.DataFr
         ax.set_ylim(0, 105)
         ax.set_yticks(np.arange(0, 101, 20))
         ax.set_yticklabels([f'{int(y)}%' for y in np.arange(0, 101, 20)])
+        
+        # Add labels only for left and bottom subplots
+        if idx in [0, 3]:  # Left column (for 2x3 grid)
+            ax.set_ylabel('Success Rate', fontsize=10, color='#333333')
+        if idx in [3, 4, 5]:  # Bottom row (for 2x3 grid)
+            ax.set_xlabel('Domain', fontsize=10, color='#333333')
         
         # Add subtle grid
         ax.grid(axis='y', alpha=0.2, linestyle='--', linewidth=0.5)
@@ -376,26 +424,29 @@ def create_individual_model_plots(domain_df: pd.DataFrame, overall_df: pd.DataFr
         for i, (bar, rate) in enumerate(zip(bars, success_rates)):
             # Display success rate percentage
             ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1,
-                   f'{rate:.1f}%', ha='center', va='bottom',
-                   fontsize=10, fontweight='bold', color='#333333')
-        
-        # Add overall stats as subtitle (without rank)
-        overall_stats = overall_df[overall_df["model"] == model].iloc[0]
-        subtitle_text = (f"Overall Success: {overall_stats['success_rate']:.1f}% | "
-                        f"Average Score: {overall_stats['average_score']:.2f}")
-        ax.text(0.5, -0.12, subtitle_text, transform=ax.transAxes,
-               ha='center', va='top', fontsize=10, color='#666666')
-        
-        plt.tight_layout()
-        
-        # Save with sanitized filename
-        safe_model_name = model.replace("/", "_").replace(" ", "_")
-        output_path = models_dir / f"{safe_model_name}_performance.png"
-        plt.savefig(output_path, dpi=300, bbox_inches='tight', 
-                   facecolor='white', edgecolor='none')
-        plt.close()
-        
-        print(f"  📊 Created plot for {model}: {output_path}")
+                   f'{rate:.2f}%', ha='center', va='bottom',
+                   fontsize=8, fontweight='bold', color='#333333')
+    
+    # Hide any unused subplots
+    for idx in range(len(models_to_plot), 6):
+        axes[idx].axis('off')
+    
+    plt.tight_layout()
+    
+    # Save the combined figure directly to figures directory
+    # Save PNG
+    output_path_png = figures_dir / "models_comparison_2x3.png"
+    plt.savefig(output_path_png, dpi=300, bbox_inches='tight', 
+               facecolor='white', edgecolor='none')
+    
+    # Save EPS
+    output_path_eps = figures_dir / "models_comparison_2x3.eps"
+    plt.savefig(output_path_eps, format='eps', bbox_inches='tight', 
+               facecolor='white', edgecolor='none')
+    
+    plt.close()
+    
+    print(f"  📊 Created 2x3 comparison plot: {output_path_png} and {output_path_eps}")
 
 def print_detailed_results(domain_df: pd.DataFrame, overall_df: pd.DataFrame):
     """Print comprehensive statistics in table-friendly format for paper."""
@@ -407,7 +458,7 @@ def print_detailed_results(domain_df: pd.DataFrame, overall_df: pd.DataFrame):
     # Table 1: Overall Model Performance Ranking
     print("\n📊 TABLE 1: OVERALL MODEL PERFORMANCE RANKING")
     print("-" * 100)
-    print(f"{'Rank':<6} {'Model':<30} {'Success Rate':<15} {'Correct/Total':<15} {'Avg Score':<12} {'Std Dev':<10}")
+    print(f"{'Rank':<6} {'Model':<30} {'Success Rate':<15} {'Avg Score':<12} {'Std Dev':<10}")
     print("-" * 100)
     
     for _, row in overall_df.iterrows():
@@ -418,7 +469,6 @@ def print_detailed_results(domain_df: pd.DataFrame, overall_df: pd.DataFrame):
         std_dev = np.std(model_scores) if model_scores else 0
         
         print(f"{row['rank']:<6} {row['model']:<30} {row['success_rate']:>6.2f}%{'':<8} "
-              f"{row['correct_tasks']:>3d}/{row['total_tasks']:<3d}{'':<8} "
               f"{row['average_score']:>6.3f}{'':<6} {std_dev:>6.3f}")
     
     # Table 2: Domain-wise Performance Matrix
@@ -429,7 +479,9 @@ def print_detailed_results(domain_df: pd.DataFrame, overall_df: pd.DataFrame):
     
     # Print header
     header = f"{'Model':<30}"
-    for domain in sorted(pivot_table.columns):
+    # Use the predefined domain order
+    ordered_domains = [d for d in DOMAIN_ORDER if d in pivot_table.columns]
+    for domain in ordered_domains:
         header += f" {domain.capitalize():<12}"
     header += f" {'Average':<12}"
     print(header)
@@ -439,7 +491,7 @@ def print_detailed_results(domain_df: pd.DataFrame, overall_df: pd.DataFrame):
     for model in overall_df["model"]:
         row_str = f"{model:<30}"
         domain_scores = []
-        for domain in sorted(pivot_table.columns):
+        for domain in ordered_domains:
             if model in pivot_table.index and domain in pivot_table.columns:
                 value = pivot_table.loc[model, domain]
                 if pd.notna(value):
@@ -469,7 +521,10 @@ def print_detailed_results(domain_df: pd.DataFrame, overall_df: pd.DataFrame):
         "total_tasks": "sum"
     }).round(2)
     
-    for domain in domain_stats.index:
+    # Use the predefined domain order
+    for domain in DOMAIN_ORDER:
+        if domain not in domain_stats.index:
+            continue
         avg_rate = domain_stats.loc[domain, ("success_rate", "mean")]
         std_rate = domain_stats.loc[domain, ("success_rate", "std")]
         min_rate = domain_stats.loc[domain, ("success_rate", "min")]
@@ -511,12 +566,17 @@ def print_detailed_results(domain_df: pd.DataFrame, overall_df: pd.DataFrame):
     print("-" * 100)
     
     for model in sorted(domain_df["model"].unique()):
-        model_data = domain_df[domain_df["model"] == model].sort_values("domain")
+        model_data = domain_df[domain_df["model"] == model]
         first_row = True
-        for _, row in model_data.iterrows():
+        # Use the predefined domain order
+        for domain in DOMAIN_ORDER:
+            domain_row = model_data[model_data["domain"] == domain]
+            if domain_row.empty:
+                continue
+            row = domain_row.iloc[0]
             model_name = model if first_row else ""
             first_row = False
-            print(f"{model_name:<30} {row['domain'].capitalize():<15} {row['total_tasks']:<8} "
+            print(f"{model_name:<30} {domain.capitalize():<15} {row['total_tasks']:<8} "
                   f"{row['correct_tasks']:<10} {row['success_rate']:>6.2f}%{'':<5} {row['average_score']:>6.3f}")
         
         # Add model summary
@@ -548,19 +608,23 @@ def print_detailed_results(domain_df: pd.DataFrame, overall_df: pd.DataFrame):
     print(f"Best Overall Model: {best_model['model']} ({best_model['success_rate']:.2f}%)")
     
     # Best model per domain
-    for domain in sorted(domain_df["domain"].unique()):
-        domain_best = domain_df[domain_df["domain"] == domain].nlargest(1, "success_rate").iloc[0]
-        print(f"Best in {domain.capitalize()}: {domain_best['model']} ({domain_best['success_rate']:.2f}%)")
+    for domain in DOMAIN_ORDER:
+        if domain in domain_df["domain"].unique():
+            domain_best = domain_df[domain_df["domain"] == domain].nlargest(1, "success_rate").iloc[0]
+            print(f"Best in {domain.capitalize()}: {domain_best['model']} ({domain_best['success_rate']:.2f}%)")
     
     # Difficulty analysis
-    print("\n📊 DOMAIN DIFFICULTY RANKING:")
+    print("\n📊 DOMAIN PERFORMANCE (in order: Sudoku → Raven → Rotation → Maze → Chess):")
     print("-" * 50)
     
-    domain_difficulty = domain_df.groupby("domain")["success_rate"].mean().sort_values(ascending=False)
+    domain_difficulty = domain_df.groupby("domain")["success_rate"].mean()
     
-    for rank, (domain, avg_rate) in enumerate(domain_difficulty.items(), 1):
-        difficulty_level = "Easy" if avg_rate > 70 else "Medium" if avg_rate > 40 else "Hard"
-        print(f"{rank}. {domain.capitalize():<15} - Average Success: {avg_rate:>6.2f}% ({difficulty_level})")
+    # Use the predefined domain order
+    for domain in DOMAIN_ORDER:
+        if domain in domain_difficulty.index:
+            avg_rate = domain_difficulty[domain]
+            difficulty_level = "Easy" if avg_rate > 70 else "Medium" if avg_rate > 40 else "Hard"
+            print(f"{domain.capitalize():<15} - Average Success: {avg_rate:>6.2f}% ({difficulty_level})")
     
     # Table 7: Performance Variance Analysis
     print("\n\n📊 TABLE 7: PERFORMANCE VARIANCE ANALYSIS")
@@ -630,9 +694,9 @@ Examples:
     # 2. Overall domain difficulty figure
     create_overall_domain_figure(domain_df)
     
-    # 3. Individual model performance plots
-    print(f"\n📊 Creating individual model performance plots...")
-    create_individual_model_plots(domain_df, overall_df)
+    # 3. Model comparison grid (2x3)
+    print(f"\n📊 Creating model comparison grid...")
+    create_model_comparison_grid(domain_df, overall_df)
 
 if __name__ == "__main__":
     main()
