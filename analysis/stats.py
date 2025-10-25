@@ -357,91 +357,184 @@ class EvaluationComparator:
         return results_df
     
     def plot_comparisons(self, paired_df: pd.DataFrame, convergence_data: Dict, save_path: str = "analysis/statistics"):
-        """Create comprehensive visualization of the comparison."""
+        """Create a clean, minimalist scatter plot with elegant aesthetics."""
         os.makedirs(save_path, exist_ok=True)
         
-        fig, axes = plt.subplots(2, 3, figsize=(15, 10))
-        fig.suptitle('GPT-4o vs Human Evaluation Statistical Comparison', fontsize=16)
+        # Minimalist styling
+        plt.style.use('seaborn-v0_8-whitegrid')
+        plt.rcParams.update({
+            'font.family': 'sans-serif',
+            'font.sans-serif': ['Helvetica', 'Arial', 'sans-serif'],
+            'axes.linewidth': 0.8,
+            'grid.linewidth': 0.4,
+        })
         
-        # 1. Scatter plot with regression line
-        ax = axes[0, 0]
-        ax.scatter(paired_df['score_gpt4o'], paired_df['score_human'], alpha=0.5)
+        # Simple square figure
+        fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+        fig.patch.set_facecolor('white')
+        ax.set_facecolor('#fcfcfd')
         
-        # Add regression line
+        # Calculate statistics
+        correlation, p_value = pearsonr(paired_df['score_gpt4o'], paired_df['score_human'])
+        
+        # Import necessary libraries
+        import matplotlib.cm as cm
+        import matplotlib.colors as mcolors
+        
+        
+        # All visual elements encode count of overlapping cases (exact integer pairs)
+        score_pairs = paired_df[['score_gpt4o', 'score_human']]
+        point_counts = score_pairs.groupby(['score_gpt4o', 'score_human'])['score_gpt4o'].transform('count')
+        
+        # Normalize counts to 0-1 range for visual encoding
+        if point_counts.max() > point_counts.min():
+            normalized_counts = (point_counts - point_counts.min()) / (point_counts.max() - point_counts.min())
+        else:
+            normalized_counts = np.ones(len(point_counts))
+        
+        # Color map: medium intensity blues for balanced visibility
+        count_cmap = mcolors.LinearSegmentedColormap.from_list(
+            "count_blues",
+            ["#93c5fd", "#3b82f6", "#1d4ed8"]
+        )
+        norm = mcolors.Normalize(vmin=float(np.min(normalized_counts)), vmax=float(np.max(normalized_counts)))
+        
+        # Size: small (few cases) to big (many cases)
+        if point_counts.max() > point_counts.min():
+            sizes = np.interp(point_counts, [point_counts.min(), point_counts.max()], [25.0, 220.0])
+        else:
+            sizes = np.full(len(point_counts), 25.0)
+        
+        # Alpha: balanced opacity for good visibility without being too intense
+        alphas = 0.7 + (normalized_counts * 0.3)
+        
+        
+        
+        # Define line colors (variations of the same blue)
+        line_color = '#2563eb'  # Medium blue for regression
+        reference_color = '#94a3b8'  # Light blue-gray for reference
+        
+        # Create scatter plot with count-based visual encoding
+        # Plot points in order of count (fewest first, so most frequent are on top)
+        sorted_indices = np.argsort(normalized_counts)
+        
+        # Create a scatter plot for colorbar reference
+        scatter_collection = None
+        for idx in sorted_indices:
+            sc = ax.scatter(
+                paired_df['score_gpt4o'].iloc[idx], 
+                paired_df['score_human'].iloc[idx], 
+                s=sizes.iloc[idx] if hasattr(sizes, 'iloc') else sizes[idx],
+                c=[normalized_counts.iloc[idx] if hasattr(normalized_counts, 'iloc') else normalized_counts[idx]],
+                cmap=count_cmap,
+                norm=norm,
+                alpha=alphas.iloc[idx] if hasattr(alphas, 'iloc') else alphas[idx],
+                edgecolors='#e2e8f0',
+                linewidths=0.5,
+                zorder=2 + (normalized_counts.iloc[idx] if hasattr(normalized_counts, 'iloc') else normalized_counts[idx])
+            )
+            if scatter_collection is None:
+                scatter_collection = sc
+        
+        mappable = cm.ScalarMappable(norm=norm, cmap=count_cmap)
+        mappable.set_array([])
+        cbar = plt.colorbar(mappable, ax=ax, fraction=0.046, pad=0.04)
+        cbar.set_label('Case Count (higher is more frequent)', fontsize=11, color='#111827')
+        cbar.outline.set_edgecolor('#e2e8f0')
+        cbar.outline.set_linewidth(0.8)
+        plt.setp(cbar.ax.get_yticklabels(), color='#475569')
+        
+        # Simple regression line
         z = np.polyfit(paired_df['score_gpt4o'], paired_df['score_human'], 1)
         p = np.poly1d(z)
         x_line = np.linspace(paired_df['score_gpt4o'].min(), paired_df['score_gpt4o'].max(), 100)
-        ax.plot(x_line, p(x_line), "r-", alpha=0.8, label=f'y={z[0]:.2f}x+{z[1]:.2f}')
+        ax.plot(
+            x_line, 
+            p(x_line), 
+            color=line_color,
+            linewidth=2,
+            alpha=0.8,
+            label=f'r = {correlation:.3f}'
+        )
         
-        # Add diagonal line (perfect agreement)
-        ax.plot([0, 5], [0, 5], 'k--', alpha=0.3, label='Perfect agreement')
+        # Perfect agreement line
+        min_val = min(paired_df['score_gpt4o'].min(), paired_df['score_human'].min())
+        max_val = max(paired_df['score_gpt4o'].max(), paired_df['score_human'].max())
+        ax.plot(
+            [min_val, max_val], 
+            [min_val, max_val], 
+            color=reference_color,
+            linestyle='--',
+            linewidth=1.5,
+            alpha=0.5,
+            label='Perfect agreement'
+        )
         
-        ax.set_xlabel('GPT-4o Score')
-        ax.set_ylabel('Human Score')
-        ax.set_title('Score Correlation')
-        ax.legend()
-        ax.grid(True, alpha=0.3)
+        # Clean label and title colors for better contrast (avoid using the same blue as points)
+        title_color = '#0b132b'
+        axis_label_color = '#111827'
+        ax.set_xlabel('GPT-4o Score', fontsize=13, color=axis_label_color)
+        ax.set_ylabel('Human Score', fontsize=13, color=axis_label_color)
         
-        # 2. Distribution comparison
-        ax = axes[0, 1]
-        ax.hist(paired_df['score_gpt4o'], bins=10, alpha=0.5, label='GPT-4o', color='blue')
-        ax.hist(paired_df['score_human'], bins=10, alpha=0.5, label='Human', color='red')
-        ax.set_xlabel('Score')
-        ax.set_ylabel('Frequency')
-        ax.set_title('Score Distributions')
-        ax.legend()
-        ax.grid(True, alpha=0.3)
+        ax.set_title(
+            'GPT-4o vs Human Evaluation',
+            fontsize=15,
+            color=title_color,
+            pad=20
+        )
         
-        # 3. Bland-Altman plot
-        ax = axes[0, 2]
-        mean_scores = (paired_df['score_gpt4o'] + paired_df['score_human']) / 2
-        diff_scores = paired_df['score_gpt4o'] - paired_df['score_human']
         
-        ax.scatter(mean_scores, diff_scores, alpha=0.5)
-        ax.axhline(y=diff_scores.mean(), color='r', linestyle='-', label=f'Mean: {diff_scores.mean():.2f}')
-        ax.axhline(y=diff_scores.mean() + 1.96*diff_scores.std(), color='r', linestyle='--', alpha=0.5, label='±1.96 SD')
-        ax.axhline(y=diff_scores.mean() - 1.96*diff_scores.std(), color='r', linestyle='--', alpha=0.5)
-        ax.axhline(y=0, color='black', linestyle='-', alpha=0.3)
+        # Minimal legend
+        legend = ax.legend(
+            loc='lower right',
+            fontsize=11,
+            frameon=True,
+            fancybox=False,
+            framealpha=0.9,
+            edgecolor='none'
+        )
+        for text in legend.get_texts():
+            text.set_color('#334155')
+        legend.get_frame().set_facecolor('white')
+        legend.get_frame().set_edgecolor('#e2e8f0')
         
-        ax.set_xlabel('Mean Score')
-        ax.set_ylabel('Difference (GPT-4o - Human)')
-        ax.set_title('Bland-Altman Plot')
-        ax.legend()
-        ax.grid(True, alpha=0.3)
+        # Clean grid with subtle blue-gray
+        ax.grid(True, alpha=0.15, linestyle='-', linewidth=0.5, color='#e2e8f0')
+        ax.set_axisbelow(True)
         
-        # 4. P-value convergence
-        ax = axes[1, 0]
-        ax.plot(convergence_data['sample_sizes'], convergence_data['p_values'], 'b-', marker='o', markersize=4)
-        ax.axhline(y=0.05, color='r', linestyle='--', label='p=0.05 threshold')
-        ax.set_xlabel('Sample Size')
-        ax.set_ylabel('P-value')
-        ax.set_title('P-value Convergence with Sample Size')
-        ax.legend()
-        ax.grid(True, alpha=0.3)
+        # Remove top and right spines for cleaner look
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        # Use subtle blue-gray for spines
+        spine_color = '#94a3b8'
+        ax.spines['left'].set_color(spine_color)
+        ax.spines['bottom'].set_color(spine_color)
         
-        # 5. Correlation convergence
-        ax = axes[1, 1]
-        ax.plot(convergence_data['sample_sizes'], convergence_data['correlations'], 'g-', marker='o', markersize=4)
-        ax.set_xlabel('Sample Size')
-        ax.set_ylabel('Pearson Correlation')
-        ax.set_title('Correlation Convergence with Sample Size')
-        ax.grid(True, alpha=0.3)
+        # Clean ticks with blue theme
+        ax.tick_params(colors='#475569', labelsize=11)
         
-        # 6. Mean difference convergence
-        ax = axes[1, 2]
-        ax.plot(convergence_data['sample_sizes'], convergence_data['mean_differences'], 'r-', marker='o', markersize=4)
-        ax.axhline(y=0, color='black', linestyle='--', alpha=0.3, label='No difference')
-        ax.set_xlabel('Sample Size')
-        ax.set_ylabel('Mean Absolute Difference')
-        ax.set_title('Mean Difference Convergence')
-        ax.legend()
-        ax.grid(True, alpha=0.3)
+        # Equal aspect ratio
+        ax.set_aspect('equal', adjustable='box')
+        
+        # Set clean axis limits
+        margin = 0.1 * (max_val - min_val)
+        ax.set_xlim(min_val - margin, max_val + margin)
+        ax.set_ylim(min_val - margin, max_val + margin)
         
         plt.tight_layout()
-        plt.savefig(f"{save_path}/gpt4o_vs_human_comparison.png", dpi=300, bbox_inches='tight')
+        
+        # Save figure
+        plt.savefig(
+            f"{save_path}/gpt4o_vs_human_comparison.png", 
+            dpi=300,
+            bbox_inches='tight',
+            facecolor='white',
+            edgecolor='none'
+        )
+        
         plt.show()
         
-        print(f"\nPlot saved to {save_path}/gpt4o_vs_human_comparison.png")
+        print(f"\nClean visualization saved to {save_path}/gpt4o_vs_human_comparison.png")
     
     def run_full_analysis(self):
         """Run the complete statistical analysis."""

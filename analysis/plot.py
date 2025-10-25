@@ -38,7 +38,7 @@ DOMAIN_COLORS = {
 }
 
 # Define the domain order
-DOMAIN_ORDER = ['sudoku', 'raven', 'rotation', 'maze', 'chess']
+DOMAIN_ORDER = ['sudoku', 'raven', 'maze', 'rotation', 'chess']
 
 # Model signature colors (predefined for consistency)
 MODEL_COLORS = {
@@ -205,7 +205,7 @@ def create_overall_model_figure(overall_df: pd.DataFrame):
     for i, (bar, row) in enumerate(zip(bars, overall_df.itertuples())):
         rate = row.success_rate
         # Success rate on top of bar
-        ax.text(i, rate + 1, f'{rate:.1f}%', 
+        ax.text(i, rate + 1, f'{rate:.2f}%', 
                ha='center', va='bottom', fontsize=10, 
                fontweight='bold', color='#333333')
         
@@ -288,7 +288,7 @@ def create_overall_domain_figure(domain_df: pd.DataFrame):
     # Add value labels and difficulty indicators
     for i, (bar, rate, domain) in enumerate(zip(bars, success_rates, domains)):
         # Success rate on top
-        ax.text(i, rate + 1, f'{rate:.1f}%', 
+        ax.text(i, rate + 1, f'{rate:.2f}%', 
                ha='center', va='bottom', fontsize=11,
                fontweight='bold', color='#333333')
         
@@ -408,7 +408,7 @@ def create_model_comparison_grid(domain_df: pd.DataFrame, overall_df: pd.DataFra
         for i, (bar, rate) in enumerate(zip(bars, success_rates)):
             # Display success rate percentage
             ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1,
-                   f'{rate:.1f}%', ha='center', va='bottom',
+                   f'{rate:.2f}%', ha='center', va='bottom',
                    fontsize=8, fontweight='bold', color='#333333')
     
     # Hide any unused subplots
