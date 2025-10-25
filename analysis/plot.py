@@ -216,12 +216,20 @@ def create_overall_model_figure(overall_df: pd.DataFrame):
     # Save figure
     figures_dir = Path(__file__).parent / "figures"
     figures_dir.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
-    output_path = figures_dir / "overall_model_ranking.png"
-    plt.savefig(output_path, dpi=300, bbox_inches='tight',
+    
+    # Save PNG
+    output_path_png = figures_dir / "overall_model_ranking.png"
+    plt.savefig(output_path_png, dpi=300, bbox_inches='tight',
                facecolor='white', edgecolor='none')
+    
+    # Save EPS
+    output_path_eps = figures_dir / "overall_model_ranking.eps"
+    plt.savefig(output_path_eps, format='eps', bbox_inches='tight',
+               facecolor='white', edgecolor='none')
+    
     plt.close()
     
-    print(f"📊 Overall model ranking figure saved to: {output_path}")
+    print(f"📊 Overall model ranking figure saved to: {output_path_png} and {output_path_eps}")
 
 def create_overall_domain_figure(domain_df: pd.DataFrame):
     """Create a clean bar chart showing overall domain performance."""
@@ -306,12 +314,20 @@ def create_overall_domain_figure(domain_df: pd.DataFrame):
     # Save figure
     figures_dir = Path(__file__).parent / "figures"
     figures_dir.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
-    output_path = figures_dir / "overall_domain_difficulty.png"
-    plt.savefig(output_path, dpi=300, bbox_inches='tight',
+    
+    # Save PNG
+    output_path_png = figures_dir / "overall_domain_difficulty.png"
+    plt.savefig(output_path_png, dpi=300, bbox_inches='tight',
                facecolor='white', edgecolor='none')
+    
+    # Save EPS
+    output_path_eps = figures_dir / "overall_domain_difficulty.eps"
+    plt.savefig(output_path_eps, format='eps', bbox_inches='tight',
+               facecolor='white', edgecolor='none')
+    
     plt.close()
     
-    print(f"📊 Overall domain difficulty figure saved to: {output_path}")
+    print(f"📊 Overall domain difficulty figure saved to: {output_path_png} and {output_path_eps}")
 
 def create_model_comparison_grid(domain_df: pd.DataFrame, overall_df: pd.DataFrame):
     """Create a 2x3 subplot figure showing performance across domains for all 6 models."""
@@ -418,12 +434,19 @@ def create_model_comparison_grid(domain_df: pd.DataFrame, overall_df: pd.DataFra
     plt.tight_layout()
     
     # Save the combined figure directly to figures directory
-    output_path = figures_dir / "models_comparison_2x3.png"
-    plt.savefig(output_path, dpi=300, bbox_inches='tight', 
+    # Save PNG
+    output_path_png = figures_dir / "models_comparison_2x3.png"
+    plt.savefig(output_path_png, dpi=300, bbox_inches='tight', 
                facecolor='white', edgecolor='none')
+    
+    # Save EPS
+    output_path_eps = figures_dir / "models_comparison_2x3.eps"
+    plt.savefig(output_path_eps, format='eps', bbox_inches='tight', 
+               facecolor='white', edgecolor='none')
+    
     plt.close()
     
-    print(f"  📊 Created 2x3 comparison plot: {output_path}")
+    print(f"  📊 Created 2x3 comparison plot: {output_path_png} and {output_path_eps}")
 
 def print_detailed_results(domain_df: pd.DataFrame, overall_df: pd.DataFrame):
     """Print comprehensive statistics in table-friendly format for paper."""

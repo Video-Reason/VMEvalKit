@@ -523,7 +523,7 @@ class EvaluationComparator:
         
         plt.tight_layout()
         
-        # Save figure
+        # Save PNG figure
         plt.savefig(
             f"{save_path}/gpt4o_vs_human_comparison.png", 
             dpi=300,
@@ -532,9 +532,18 @@ class EvaluationComparator:
             edgecolor='none'
         )
         
+        # Save EPS figure
+        plt.savefig(
+            f"{save_path}/gpt4o_vs_human_comparison.eps", 
+            format='eps',
+            bbox_inches='tight',
+            facecolor='white',
+            edgecolor='none'
+        )
+        
         plt.show()
         
-        print(f"\nClean visualization saved to {save_path}/gpt4o_vs_human_comparison.png")
+        print(f"\nClean visualization saved to {save_path}/gpt4o_vs_human_comparison.png and {save_path}/gpt4o_vs_human_comparison.eps")
     
     def run_full_analysis(self):
         """Run the complete statistical analysis."""
