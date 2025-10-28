@@ -33,6 +33,7 @@ def decompose_video(
     figure_size: Tuple[int, int] = (16, 4),
     dpi: int = 300,
     add_timestamps: bool = True,
+    add_frame_numbers: bool = False,
     title: Optional[str] = None,
 ) -> Tuple[List[np.ndarray], Optional[str]]:
     """
@@ -47,6 +48,7 @@ def decompose_video(
         figure_size: Figure size in inches (width, height)
         dpi: DPI for saved figures (default: 300 for publication quality)
         add_timestamps: Whether to add timestamp labels
+        add_frame_numbers: Whether to add frame number labels (e.g., "Frame 7")
         title: Optional title for the figure
     
     Returns:
@@ -89,6 +91,7 @@ def decompose_video(
         # Extract frames
         frames = []
         timestamps = []
+        actual_frame_numbers = []  # Store actual frame indices
         
         for frame_idx in frame_indices:
             cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
@@ -105,6 +108,7 @@ def decompose_video(
             # Calculate timestamp
             timestamp = frame_idx / fps if fps > 0 else 0
             timestamps.append(timestamp)
+            actual_frame_numbers.append(int(frame_idx))  # Store actual frame number
         
         if not frames:
             raise ValueError("No frames could be extracted from the video")
@@ -115,8 +119,8 @@ def decompose_video(
         figure_path = None
         if create_figure:
             figure_path = _create_figure(
-                frames, timestamps, video_path.stem, output_dir, 
-                layout, figure_size, dpi, add_timestamps, title, duration
+                frames, timestamps, actual_frame_numbers, video_path.stem, output_dir, 
+                layout, figure_size, dpi, add_timestamps, add_frame_numbers, title, duration
             )
         
         return frames, figure_path
@@ -128,12 +132,14 @@ def decompose_video(
 def _create_figure(
     frames: List[np.ndarray],
     timestamps: List[float],
+    actual_frame_numbers: List[int],
     video_name: str,
     output_dir: Path,
     layout: str,
     figure_size: Tuple[int, int],
     dpi: int,
     add_timestamps: bool,
+    add_frame_numbers: bool,
     title: Optional[str],
     duration: float
 ) -> str:
@@ -179,7 +185,7 @@ def _create_figure(
                     fontsize=14, fontweight='bold', y=0.95)
     
     # Plot frames
-    for i, (frame, timestamp) in enumerate(zip(frames, timestamps)):
+    for i, (frame, timestamp, frame_num) in enumerate(zip(frames, timestamps, actual_frame_numbers)):
         if i >= len(axes):
             break
             
@@ -187,12 +193,18 @@ def _create_figure(
         ax.imshow(frame)
         ax.axis('off')
         
-        # Add timestamp if requested
+        # Add labels: frame number and/or timestamp
+        label_parts = []
+        if add_frame_numbers:
+            label_parts.append(f"Frame {frame_num}")  # Use actual frame number
         if add_timestamps:
-            ax.text(0.02, 0.98, f"t={timestamp:.2f}s", 
+            label_parts.append(f"t={timestamp:.2f}s")
+        if label_parts:
+            # Position label at top of frame with small margin
+            ax.text(0.02, 0.98, " | ".join(label_parts),
                    transform=ax.transAxes, fontsize=9, fontweight='bold',
                    verticalalignment='top', horizontalalignment='left',
-                   bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8))
+                   bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.85))
     
     # Hide unused subplots in grid layout
     if layout == "grid":
