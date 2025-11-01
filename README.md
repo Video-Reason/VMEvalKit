@@ -6,6 +6,8 @@ Evaluate reasoning capabilities in video generation models through cognitive tas
 
 VMEvalKit tests whether video models can solve visual problems (mazes, chess, puzzles) by generating solution videos. 
 
+**Research**: Our [paper](paper/video-models-start-to-solve/Video_Model_Start_to_Solve.pdf) shows leading models achieve >60% success on reasoning tasks. Explore results at [grow-ai-like-a-child.com/video-reason](https://grow-ai-like-a-child.com/video-reason/) 🎯
+
 **Key requirement**: Models must accept BOTH:
 - 📸 An input image (the problem)
 - 📝 A text prompt (instructions)
@@ -75,12 +77,19 @@ Every VMEvalKit dataset consists of **Task Pairs** - the basic unit for video re
 
 Each task pair is organized in its own folder (`data/questions/{domain}_task/{question_id}/`) containing all four files. Models must generate videos showing the reasoning process from initial → final state.
 
+![Task Pair Structure](paper/video-models-start-to-solve/assets/question_set.pdf)
+
+**📊 See all experimental results and videos:** [**Interactive Results Page**](https://grow-ai-like-a-child.com/video-reason/)
+
 ## Tasks
 
 - **Maze Solving**: Navigate from start to finish
 - **Mental Rotation**: Rotate 3D objects to match targets
 - **Chess Puzzles**: Demonstrate puzzle solutions
 - **Raven's Matrices**: Complete visual patterns
+- **Sudoku Solving**: Complete 3×3 grids with logical deduction
+
+**🔬 Research Findings**: Leading models achieve >60% success rates on reasoning tasks. See detailed performance analysis and example videos at the [**Results Page**](https://grow-ai-like-a-child.com/video-reason/).
 
 ## Configuration
 
@@ -300,6 +309,34 @@ python examples/run_evaluation.py custom
 Results are saved in `data/evaluations/`. 
 
 📚 **For detailed documentation, see [vmevalkit/eval/README.md](vmevalkit/eval/README.md)**
+
+## Paper & Research
+
+**"Video Models Start to Solve Chess, Maze, Sudoku, Mental Rotation, and Raven's Matrices"**
+
+This codebase implements the experimental framework from our research paper, which demonstrates that leading video generation models (Sora-2, Veo-3, etc.) can perform visual reasoning tasks with >60% success rates.
+
+**Key Findings:**
+- Sora-2 achieves 68% overall success rate (87% on maze navigation, 73% on chess)
+- Strong correlation (r=0.949) between human and GPT-4o automated evaluation
+- Sudoku is most tractable (57% average), mental rotation most challenging (11%)
+- Clear performance hierarchy across 6 tested models
+
+**Resources:**
+- 📄 **Paper**: [paper/video-models-start-to-solve/Video_Model_Start_to_Solve.pdf](paper/video-models-start-to-solve/Video_Model_Start_to_Solve.pdf)
+- 🌐 **Results Page**: [https://grow-ai-like-a-child.com/video-reason/](https://grow-ai-like-a-child.com/video-reason/) - Interactive visualization of all experimental results
+- 📊 **Task Structure**: [paper/video-models-start-to-solve/assets/question_set.pdf](paper/video-models-start-to-solve/assets/question_set.pdf)
+
+**Citation:**
+```bibtex
+@article{deng2025videoreasoning,
+  title={Video Models Start to Solve Chess, Maze, Sudoku, Mental Rotation, and Raven's Matrices},
+  author={Deng, Hokin},
+  journal={arXiv preprint},
+  year={2025},
+  url={https://github.com/hokindeng/VMEvalKit}
+}
+```
 
 ## License
 
