@@ -179,6 +179,8 @@ evaluator = HumanEvaluator(experiment_name="pilot_experiment")
 evaluator.launch_interface(share=True, port=7860)
 ```
 
+See **[Evaluation Guide](docs/EVALUATION.md)** for details.
+
 ## Documentation
 
 📚 **Core Documentation:**
