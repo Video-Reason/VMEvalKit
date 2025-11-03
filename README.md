@@ -71,9 +71,6 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-Let me know if you'd like a full rewrite using `uv` or `conda` as the default setup.
-
-
 ## Tasks
 
 VMEvalKit evaluates models across 5 cognitive reasoning domains:
