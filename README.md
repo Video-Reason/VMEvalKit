@@ -1,6 +1,6 @@
 # VMEvalKit 🎥🧠
 
-A framework to evaluate reasoning capabilities in video generation models at scale, through cognitive tasks. We **make it very convenient** to [**add models**](docs/ADDING_MODELS.md), [**add tasks**](docs/ADDING_TASKS.md), [**run inferences**](docs/INFERENCE.md), [**run evaluations**](docs/EVALUATION.md), and [**display results**](https://grow-ai-like-a-child.com/video-reason/). It's **permissively open-source**, and we welcome everyone to [**join**](https://join.slack.com/t/growingailikeachild/shared_invite/zt-309yqd0sl-W8xzOkdBPha1Jh5rnee78A) us and **build in public together**! 🚀
+A framework to evaluate reasoning capabilities in video generation models at scale, through cognitive tasks. We **make it very convenient** to [**add models**](docs/ADDING_MODELS.md), [**add tasks**](docs/ADDING_TASKS.md), [**run inferences**](docs/INFERENCE.md), [**run evaluations**](docs/EVALUATION.md), and [**display results**](https://grow-ai-like-a-child.com/video-reason/). It's **permissively open-source**, and we welcome everyone to [**join**](https://join.slack.com/t/growingailikeachild/shared_invite/zt-309yqd0sl-W8xzOkdBPha1Jh5rnee78A) us and **build in public together**! 🚀 See preliminary [**results**](https://grow-ai-like-a-child.com/video-reason/)
 
 ![VMEvalKit Framework](paper/video-models-start-to-solve/assets/draft_1.jpg)
 
@@ -11,7 +11,7 @@ VMEvalKit aims to provide an infrastructure for reasoning research in video mode
 - **🎯 Task Creation at Scale**: Create question dataset of many different cognitive tasks programmatically at scale and our framework makes sure the dataset to be well-organized.
 - **🚀 Model Inference at Scale**: Easy one-click inference of the entire question dataset across many video models (commercial APIs + open-source) with automatic resume, error handling, and structured output management, and automatically sync the inference results into the dataset. 
 - **⚖️ Evaluation Pipeline**: Human evaluation via web interface and AI evaluation via automated MLLM scoring, also automatically sync the eval results into the dataset. 
-- **☁️ Dataset Management**: Manage question datasets from task creation, inference results from video models, and evaluation results from humans or MLLM pipelines. Provide both AWS S3 or HuggingFace use case, with version tracking and built-in logging for reproducibility. 
+- **☁️ Dataset Management**: Manage question datasets from task creation, inference results from video models, and evaluation results from humans or MLLM pipelines. Provide both AWS S3 or HuggingFace use cases, with version tracking and built-in logging for reproducibility. 
 
 We have completed running a question dataset of chess, maze, Sudoku, mental rotation, and Raven's Matrices on latest video models. Checkout our raw results ([**videos**](https://grow-ai-like-a-child.com/video-reason/)) on this [**website**](https://grow-ai-like-a-child.com/video-reason/). Here are a few examples.
 
@@ -46,58 +46,11 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-## Quick Start
-
-```python
-from vmevalkit.runner.inference import InferenceRunner
-
-# Initialize runner with structured output
-runner = InferenceRunner(output_dir="output")
-
-# Generate video solution
-result = runner.run(
-    model_name="luma-ray-2",
-    image_path="data/questions/maze_task/maze_0000/first_frame.png",
-    text_prompt="Navigate the green dot through the maze corridors to reach the red flag"
-)
-
-print(f"Video saved to: {result['inference_dir']}")
-```
-
-**📊 See all experimental results and videos:** [**Interactive Results Page**](https://grow-ai-like-a-child.com/video-reason/)
-
 ## Tasks
 
 VMEvalKit evaluates models across 5 cognitive reasoning domains:
 
 ![Task Pair Structure](paper/video-models-start-to-solve/assets/question_set.jpg)
-
-### 🧩 Maze Solving
-Navigate from start to finish through complex pathways.
-
-![Maze Example](paper/video-models-start-to-solve/assets/maze_example.jpg)
-
-### 🔄 Mental Rotation
-Rotate 3D objects to match target orientations.
-
-![Rotation Example](paper/video-models-start-to-solve/assets/rotation_example.jpg)
-
-### ♟️ Chess Puzzles
-Demonstrate chess puzzle solutions with strategic moves.
-
-![Chess Example](paper/video-models-start-to-solve/assets/chess_example.jpg)
-
-### 🎨 Raven's Matrices
-Complete visual pattern reasoning tasks.
-
-![Raven Example](paper/video-models-start-to-solve/assets/raven_example.jpg)
-
-### 🔢 Sudoku Solving
-Complete 3×3 grids using logical deduction.
-
-![Sudoku Example](paper/video-models-start-to-solve/assets/sudoku_example.jpg)
-
-**🔬 Research Findings**: Leading models achieve >60% success rates on reasoning tasks. See detailed performance analysis and example videos at the [**Results Page**](https://grow-ai-like-a-child.com/video-reason/).
 
 ## Configuration
 
