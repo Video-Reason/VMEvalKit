@@ -148,7 +148,7 @@ That's it! You now have:
 - ✅ Scoring results in `data/scorings/`
 - ✅ Interactive dashboard to explore everything
 
-**💡 Pro Tips:**
+**Tips:**
 - Start small: `--pairs-per-domain 2` for quick testing
 - Use `--task-id chess_0001` to run specific questions  
 - Try different models: `--model openai-sora-2 veo-3.0-generate`
