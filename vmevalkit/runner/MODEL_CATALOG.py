@@ -313,6 +313,14 @@ LTX_VIDEO_MODELS = {
         "model": "Lightricks/LTX-Video",
         "description": "LTX-Video - High-quality image-to-video generation (704x480, 24fps)",
         "family": "LTX-Video"
+    },
+    "ltx-video-13b-distilled": {
+        "wrapper_module": "vmevalkit.models.ltx_inference",
+        "wrapper_class": "LTXVideoWrapper",
+        "service_class": "LTXVideoService",
+        "model": "Lightricks/LTX-Video-0.9.8-13B-distilled",
+        "description": "LTX-Video 0.9.8 13B Distilled - Distilled version with 13B parameters",
+        "family": "LTX-Video"
     }
 }
 
@@ -378,14 +386,6 @@ SVD_MODELS = {
         "description": "Stable Video Diffusion XT - High-quality image-to-video generation",
         "family": "Stable Video Diffusion"
     },
-    "svd-xt": {
-        "wrapper_module": "vmevalkit.models.svd_inference",
-        "wrapper_class": "SVDWrapper",
-        "service_class": "SVDService",
-        "model": "stabilityai/stable-video-diffusion-img2vid-xt",
-        "description": "Stable Video Diffusion XT - High-quality image-to-video generation",
-        "family": "Stable Video Diffusion"
-    }
 }
 
 # WAN Models (Wan-AI, local diffusers implementation)
