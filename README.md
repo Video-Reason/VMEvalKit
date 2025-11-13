@@ -143,6 +143,19 @@ cd web && ./start.sh
 # Open http://localhost:5000 in your browser
 ```
 
+### 5️⃣ (Optional) Sync with Cloud
+```bash
+# HuggingFace Hub (recommended for sharing)
+export HF_TOKEN=hf_xxx_your_token_here
+python data/hf_sync.py upload --path data/questions --repo-id your-username/vmevalkit-questions --private
+
+# AWS S3 (enterprise backup)
+python data/s3_sync.py --log
+
+# Download from HuggingFace
+python data/hf_sync.py download --repo-id your-username/vmevalkit-questions --target data/questions
+```
+
 That's it! You now have:
 - ✅ Custom reasoning questions in `data/questions/`  
 - ✅ Generated videos in `data/outputs/`
@@ -319,20 +332,17 @@ data/
 
 ### Synchronization
 
-Upload/download your dataset from HuggingFace or S3:
+Upload/download your dataset from HuggingFace Hub or S3:
 
 ```bash
-# Basic upload (uses timestamp: YYYYMMDDHHMM)
-python data/s3_sync.py
+# HuggingFace Hub (recommended)
+export HF_TOKEN=hf_your_token_here
+python data/hf_sync.py upload --path data/questions --repo-id username/dataset --private
+python data/hf_sync.py download --repo-id username/dataset --target data/questions
 
-# Upload and log version
-python data/s3_sync.py --log
-
-# Upload with specific date
-python data/s3_sync.py --date 20250115
-
-# Future: Download from S3 (to be implemented)
-# python data/s3_sync.py --download --date 20250115
+# AWS S3 (enterprise)
+python data/s3_sync.py --log  # Upload with version logging
+python data/s3_sync.py --date 20250115  # Upload with specific timestamp
 ```
 
 See **[Data Management](docs/DATA_MANAGEMENT.md)** for details. 
@@ -429,6 +439,7 @@ VMEvalKit is meant to be a permissively open-source **shared playground** for ev
 - **[Inference Guide](docs/INFERENCE.md)** - Complete guide to running inference, supported models, and architecture
 - **[Scoring Guide](docs/SCORING.md)** - Human and automated scoring methods
 - **[Data Management](docs/DATA_MANAGEMENT.md)** - Dataset organization, S3 sync, and version tracking
+- **[HuggingFace Support](docs/HF_Support.md)** - Upload/download datasets to HF Hub
 - **[Adding Models](docs/ADDING_MODELS.md)** - How to add new video generation models
 - **[Adding Tasks](docs/ADDING_TASKS.md)** - How to create new reasoning tasks
 - **[Web Dashboard](docs/WEB_DASHBOARD.md)** - Interactive results visualization
