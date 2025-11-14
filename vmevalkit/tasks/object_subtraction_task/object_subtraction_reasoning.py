@@ -21,7 +21,7 @@ import matplotlib.patches as patches
 from matplotlib.patches import Rectangle, Circle, RegularPolygon, FancyBboxPatch
 
 # Import prompts from centralized location
-from .PROMPTS import PROMPTS_L1, DEFAULT_PROMPT_INDEX_L1
+from .PROMPTS import PROMPTS_L1, PROMPTS_L2, DEFAULT_PROMPT_INDEX_L1, DEFAULT_PROMPT_INDEX_L2
 
 
 @dataclass
@@ -350,6 +350,76 @@ class RuleGenerator:
             prompt = f"Remove all {shape_name.lower()} objects from the scene. Keep all other objects in their exact positions."
         
         return rule, prompt
+    
+    def generate_l2_rule(self, objects: List[Dict[str, Any]], 
+                        prompt_index: int = 0) -> Tuple[Dict[str, Any], str]:
+        """
+        Generate Level 2 rule: Remove multiple explicitly listed objects by color and shape.
+        
+        Args:
+            objects: List of objects
+            prompt_index: Index into PROMPTS_L2 list
+            
+        Returns:
+            (rule_dict, prompt_text)
+        """
+        # Ensure we have enough objects (at least 3-4 for Level 2)
+        if len(objects) < 3:
+            # Fallback to L1 if not enough objects
+            return self.generate_l1_rule(objects, prompt_index)
+        
+        # Randomly select 2-3 objects to remove (ensure at least 1 object remains)
+        num_to_remove = self.rng.randint(2, min(3, len(objects) - 1))
+        selected_objects = self.rng.sample(objects, num_to_remove)
+        
+        # Build targets list with color and shape combinations
+        targets = [
+            {"color": obj["color"], "shape": obj["shape"]}
+            for obj in selected_objects
+        ]
+        
+        # Get target object IDs - include ALL objects matching each target
+        # This ensures "Remove the yellow sphere" removes ALL yellow spheres, not just one
+        target_object_ids = []
+        for target in targets:
+            matching_objs = [obj for obj in objects 
+                           if obj["color"] == target["color"] and obj["shape"] == target["shape"]]
+            target_object_ids.extend([obj["id"] for obj in matching_objs])
+        
+        # Remove duplicates while preserving order
+        target_object_ids = list(dict.fromkeys(target_object_ids))
+        
+        # Generate prompt dynamically
+        # Format: "Remove the red cube, all green spheres, and the blue pyramid..."
+        # Use "all" + plural if multiple objects match the target
+        target_descriptions = []
+        for target in targets:
+            matching_count = len([obj for obj in objects 
+                                if obj["color"] == target["color"] and obj["shape"] == target["shape"]])
+            
+            if matching_count > 1:
+                # Multiple objects: use "all" + plural form
+                shape_plural = target['shape'] + 's' if not target['shape'].endswith('s') else target['shape']
+                target_descriptions.append(f"all {target['color']} {shape_plural}")
+            else:
+                # Single object: use "the" + singular form
+                target_descriptions.append(f"the {target['color']} {target['shape']}")
+        
+        if len(target_descriptions) == 2:
+            prompt = f"Remove {target_descriptions[0]} and {target_descriptions[1]} from the scene. Keep all other objects fixed in their positions."
+        else:  # 3 objects
+            prompt = f"Remove {target_descriptions[0]}, {target_descriptions[1]}, and {target_descriptions[2]} from the scene. Keep all other objects fixed in their positions."
+        
+        # Alternatively, use template from PROMPTS_L2 if preferred
+        # prompt = PROMPTS_L2[prompt_index % len(PROMPTS_L2)]
+        
+        rule = {
+            "level": "L2",
+            "targets": targets,
+            "target_object_ids": target_object_ids
+        }
+        
+        return rule, prompt
 
 
 class ObjectSubtractionGenerator:
@@ -369,6 +439,16 @@ class ObjectSubtractionGenerator:
         self.object_gen = ObjectGenerator(canvas_size=canvas_size)
         self.renderer = SceneRenderer(canvas_size=canvas_size)
         self.rule_gen = RuleGenerator()
+    
+    def _get_difficulty(self, level: str) -> str:
+        """Get difficulty level based on cognitive level."""
+        difficulty_map = {
+            "L1": "easy",
+            "L2": "medium",
+            "L3": "hard",
+            "L4": "hard"
+        }
+        return difficulty_map.get(level, "medium")
     
     def generate_single_task(self, task_id: str, level: str = "L1", 
                             seed: Optional[int] = None) -> ObjectSubtractionTaskPair:
@@ -398,10 +478,13 @@ class ObjectSubtractionGenerator:
         num_objects = random.randint(self.num_objects_range[0], self.num_objects_range[1])
         objects = self.object_gen.generate_objects(num_objects, seed=seed)
         
-        # Generate rule and prompt (Level 1 only for now)
+        # Generate rule and prompt based on level
         if level == "L1":
             rule, prompt = self.rule_gen.generate_l1_rule(objects, 
                                                           prompt_index=DEFAULT_PROMPT_INDEX_L1)
+        elif level == "L2":
+            rule, prompt = self.rule_gen.generate_l2_rule(objects, 
+                                                          prompt_index=DEFAULT_PROMPT_INDEX_L2)
         else:
             raise ValueError(f"Level {level} not yet implemented")
         
@@ -434,14 +517,14 @@ class ObjectSubtractionGenerator:
                 "num_removed": len(remove_ids),
                 "num_kept": len(keep_ids)
             },
-            difficulty="easy" if level == "L1" else "medium",
+            difficulty=self._get_difficulty(level),
             created_at=datetime.now().isoformat()
         )
         
         return task_pair
 
 
-def create_dataset(num_samples: int = 50, levels: List[str] = ["L1"]) -> Dict[str, Any]:
+def create_dataset(num_samples: int = 50, levels: List[str] = ["L1", "L2"]) -> Dict[str, Any]:
     """
     Create object subtraction dataset - main entry point matching other tasks.
     
