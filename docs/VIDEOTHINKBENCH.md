@@ -42,22 +42,6 @@ VideoThinkBench consists of 5 subsets:
 
 ## 🚀 Quick Start
 
-### Option 1: Using the Standalone Download Script
-
-Download the complete VideoThinkBench dataset (~4.1k tasks):
-
-```bash
-python examples/download_videothinkbench.py
-```
-
-Download to a custom location:
-
-```bash
-python examples/download_videothinkbench.py --output-dir /path/to/output
-```
-
-### Option 2: Using the Integrated create_questions.py Script
-
 Download all VideoThinkBench subsets:
 
 ```bash
@@ -176,7 +160,7 @@ python examples/create_questions.py --read-only
 ### Custom Output Directory
 
 ```bash
-python examples/download_videothinkbench.py --output-dir /custom/path
+python examples/create_questions.py --task videothinkbench --output-dir /custom/path
 ```
 
 ### Integration with Video Generation
