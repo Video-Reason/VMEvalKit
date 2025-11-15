@@ -52,8 +52,6 @@ def hf_upload(
         path_in_repo=path_in_repo,
         revision=revision,
         commit_message=message,
-        allow_pattern=None,
-        ignore_pattern=None,
     )
 
 
@@ -130,6 +128,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    # Load environment variables from .env file if it exists
+    from dotenv import load_dotenv
+    load_dotenv()
+    
     parser = build_parser()
     args = parser.parse_args()
 
