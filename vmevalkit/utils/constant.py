@@ -1,4 +1,14 @@
 DOMAIN_REGISTRY = {
+    'videothinkbench': {
+        'name': 'VideoThinkBench',
+        'description': 'Complete VideoThinkBench dataset with all reasoning tasks',
+        'module': 'vmevalkit.tasks.videothinkbench_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs'],
+        'hf': True,
+        'hf_meta': True,  # Special flag for meta-task that downloads all subsets
+        'hf_subsets': ['arc_agi_2', 'eyeballing_puzzles', 'visual_puzzles']
+    },
     'chess': {
         'name': 'Chess',
         'description': 'Strategic thinking and tactical pattern recognition',
@@ -10,7 +20,7 @@ DOMAIN_REGISTRY = {
         'name': 'Maze',
         'description': 'Spatial reasoning and navigation planning',
         'module': 'vmevalkit.tasks.maze_task',
-        'create_function': 'create_dataset',  # Standard function like other domains
+        'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
     'raven': {
@@ -35,8 +45,8 @@ DOMAIN_REGISTRY = {
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
     'arc_agi_2': {
-        'name': 'Arc AGI',
-        'description': 'Arc AGI reasoning and problem solving',
+        'name': 'ARC AGI 2',
+        'description': 'ARC AGI reasoning and problem solving',
         'module': 'vmevalkit.tasks.arc_agi_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs'],
