@@ -328,8 +328,7 @@ class SlidingPuzzleGenerator:
         actual_moves = solution_length
         prompt = PROMPTS[DEFAULT_PROMPT_INDEX].format(
             num_moves=actual_moves,
-            plural="s" if actual_moves > 1 else "",
-            is_are="are" if actual_moves > 1 else "is"
+            plural="s" if actual_moves > 1 else ""
         )
         
         # Create task pair
@@ -453,8 +452,7 @@ def create_dataset(num_samples: int = 50, difficulty_distribution: Optional[Dict
             actual_moves = solution_length
             prompt = PROMPTS[DEFAULT_PROMPT_INDEX].format(
                 num_moves=actual_moves,
-                plural="s" if actual_moves > 1 else "",
-                is_are="are" if actual_moves > 1 else "is"
+                plural="s" if actual_moves > 1 else ""
             )
             
             # Create task pair
