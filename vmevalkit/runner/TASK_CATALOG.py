@@ -1,8 +1,19 @@
+"""
+Task Catalog for VMEvalKit - Registry of all available reasoning tasks.
+
+Pure registry with no imports or logic - just task definitions organized by type.
+Uses string module paths for flexible dynamic loading.
+"""
+
+# ========================================
+# TASK REGISTRY
+# ========================================
+
 DOMAIN_REGISTRY = {
     'videothinkbench': {
         'name': 'VideoThinkBench',
         'description': 'Complete VideoThinkBench dataset with all reasoning tasks (~4.1k tasks)',
-        'module': 'vmevalkit.tasks.videothinkbench_task',
+        'module': 'vmevalkit.tasks.external.videothinkbench_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
@@ -44,35 +55,35 @@ DOMAIN_REGISTRY = {
     'arc_agi_2': {
         'name': 'ARC AGI 2',
         'description': 'ARC AGI reasoning and problem solving',
-        'module': 'vmevalkit.tasks.videothinkbench_arc_agi_task',
+        'module': 'vmevalkit.tasks.external.videothinkbench_arc_agi_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
     'eyeballing_puzzles': {
         'name': 'Eyeballing Puzzles',
         'description': 'Eyeballing puzzles reasoning and problem solving',
-        'module': 'vmevalkit.tasks.videothinkbench_eyeballing_puzzles_task',
+        'module': 'vmevalkit.tasks.external.videothinkbench_eyeballing_puzzles_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
     'visual_puzzles': {
         'name': 'Visual Puzzles',
         'description': 'Visual puzzles reasoning and problem solving',
-        'module': 'vmevalkit.tasks.videothinkbench_visual_puzzles_task',
+        'module': 'vmevalkit.tasks.external.videothinkbench_visual_puzzles_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
     'mazes': {
         'name': 'Mazes',
         'description': 'Path-finding and navigation challenges',
-        'module': 'vmevalkit.tasks.videothinkbench_mazes_task',
+        'module': 'vmevalkit.tasks.external.videothinkbench_mazes_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
     'text_centric_tasks': {
         'name': 'Text Centric Tasks',
         'description': 'Mathematical reasoning and multimodal understanding',
-        'module': 'vmevalkit.tasks.videothinkbench_text_centric_tasks_task',
+        'module': 'vmevalkit.tasks.external.videothinkbench_text_centric_tasks_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
@@ -86,8 +97,9 @@ DOMAIN_REGISTRY = {
     'mme_cof': {
         'name': 'MME-CoF',
         'description': 'Video Chain-of-Frame reasoning evaluation across 16 cognitive domains (59 tasks)',
-        'module': 'vmevalkit.tasks.mme_cof_task',
+        'module': 'vmevalkit.tasks.external.mme_cof_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     }
 }
+

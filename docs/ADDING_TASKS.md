@@ -1,6 +1,6 @@
 # VMEvalKit Task Creation Guide
 
-This comprehensive guide explains how to add new reasoning tasks to VMEvalKit. All tasks follow a standardized **First Frame → Final Frame** pattern with text prompts, enabling unified evaluation across diverse reasoning domains.
+This comprehensive guide explains how to add new reasoning tasks to VMEvalKit. Tasks can be either **locally generated** or **downloaded from external datasets**. All tasks follow a standardized **First Frame → Final Frame** pattern with text prompts, enabling unified evaluation across diverse reasoning domains.
 
 ## 🎯 Core Concept: Task Pairs
 
@@ -12,6 +12,25 @@ Every VMEvalKit task consists of a **task pair** with three essential components
 
 This structure enables video models to demonstrate reasoning by generating transitions from problem to solution.
 
+## 📦 Two Types of Tasks
+
+VMEvalKit supports two task types:
+
+### 1. **Locally Generated Tasks** 
+Tasks created programmatically (e.g., Chess, Maze, Sudoku, RAVEN)
+- ✅ Full control over generation parameters
+- ✅ Can create unlimited variations
+- ✅ Requires PROMPTS.py for prompt templates
+- ✅ Examples: `chess_task`, `maze_task`, `sudoku_task`
+
+### 2. **Downloaded Tasks** 
+Tasks from external datasets like HuggingFace (e.g., VideoThinkBench, MME-CoF)
+- ✅ Pre-curated, standardized benchmarks
+- ✅ Community-validated datasets
+- ✅ Prompts included in dataset
+- ✅ Located in `vmevalkit/tasks/external/`
+- ✅ Examples: `external.videothinkbench_arc_agi_task`, `external.mme_cof_task`
+
 ## 🏗️ Architecture Overview
 
 ### Task System Structure
@@ -19,18 +38,23 @@ This structure enables video models to demonstrate reasoning by generating trans
 ```
 vmevalkit/
 ├── runner/
-│   └── create_dataset.py       # Dataset generation orchestrator with registry
+│   ├── TASK_CATALOG.py        # Task registry
+│   └── dataset.py             # Dataset generation orchestrator
 ├── tasks/
-│   ├── chess_task/
-│   │   ├── __init__.py        # Module exports
-│   │   ├── chess_reasoning.py # Main task generation logic
-│   │   ├── PROMPTS.py         # Centralized prompt templates
-│   │   └── CHESS.md           # Task documentation
-│   ├── maze_task/
+│   ├── chess_task/            # Locally generated task
+│   │   ├── __init__.py
+│   │   ├── chess_reasoning.py
+│   │   ├── PROMPTS.py
+│   │   └── CHESS.md
+│   ├── maze_task/             # Locally generated task
 │   │   ├── __init__.py
 │   │   ├── maze_reasoning.py
 │   │   ├── PROMPTS.py
 │   │   └── MAZE.md
+│   ├── external/              # External/downloaded tasks
+│   │   ├── videothinkbench_task/
+│   │   ├── mme_cof_task/
+│   │   └── ...
 │   └── [your_task]/           # Your new task
 
 data/questions/
@@ -45,31 +69,53 @@ data/questions/
 
 ### Domain Registry System
 
-Tasks are registered in `vmevalkit/runner/create_dataset.py`:
+Tasks are registered in `vmevalkit/runner/TASK_CATALOG.py` with a uniform interface:
 
 ```python
 DOMAIN_REGISTRY = {
+    # Locally generated task
     'chess': {
-        'emoji': '♟️',
         'name': 'Chess',
         'description': 'Strategic thinking and tactical pattern recognition',
         'module': 'vmevalkit.tasks.chess_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
+    
+    # Downloaded task (HuggingFace)
+    'arc_agi_2': {
+        'name': 'ARC AGI 2',
+        'description': 'ARC AGI reasoning and problem solving',
+        'module': 'vmevalkit.tasks.external.videothinkbench_arc_agi_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    
     # Your task gets added here!
 }
 ```
 
+**Note:** The registry doesn't distinguish between generated and downloaded tasks - both use the same interface!
+
 ## 📋 Task Requirements
 
-### Required Components
+### Required Components (All Tasks)
 
 ✅ **Module Structure**: Create folder `vmevalkit/tasks/{task_name}_task/`  
-✅ **Main Script**: `{task_name}_reasoning.py` with `create_dataset()` function  
-✅ **Prompt Templates**: `PROMPTS.py` with standardized prompts  
-✅ **Module Init**: `__init__.py` exporting required functions  
+✅ **Main Script**: Python file with `create_dataset()` function  
+✅ **Module Init**: `__init__.py` exporting `create_dataset`  
 ✅ **Documentation**: `{TASK_NAME}.md` describing the task  
+✅ **Registry Entry**: Add to `DOMAIN_REGISTRY` in `TASK_CATALOG.py`
+
+### Additional for Locally Generated Tasks
+
+✅ **Prompt Templates**: `PROMPTS.py` with standardized prompts  
+✅ **Generation Logic**: Code to create images and task pairs
+
+### Additional for Downloaded Tasks
+
+✅ **Download Logic**: Code to fetch from external source (e.g., HuggingFace)  
+✅ **Data Mapping**: Convert external format to VMEvalKit format  
 
 ### Image Requirements
 
@@ -97,19 +143,28 @@ Each task pair must follow this exact format:
 }
 ```
 
-## 🚀 Quick Start: Minimal Implementation
+## 🚀 Quick Start: Choose Your Path
 
-The simplest way to add a new task:
+### Path A: Locally Generated Task
+
+Perfect for creating custom reasoning challenges with full control.
+
+### Path B: Downloaded Task  
+
+Perfect for integrating existing datasets from HuggingFace or other sources.
+
+---
+
+## 📝 Path A: Locally Generated Task
 
 ### Step 1: Register Your Task
 
-Add to `vmevalkit/runner/create_dataset.py`:
+Add to `vmevalkit/runner/TASK_CATALOG.py`:
 
 ```python
 DOMAIN_REGISTRY = {
     # ... existing tasks ...
     'your_task': {
-        'emoji': '🎯',
         'name': 'YourTask',
         'description': 'Brief description of reasoning capability',
         'module': 'vmevalkit.tasks.your_task',
@@ -119,17 +174,23 @@ DOMAIN_REGISTRY = {
 }
 ```
 
-### Step 2: Create Task Module
+### Step 2: Create Task Folder Structure
+
+```bash
+mkdir vmevalkit/tasks/your_task
+```
+
+### Step 3: Create Module Init
 
 Create `vmevalkit/tasks/your_task/__init__.py`:
 
 ```python
-from .your_reasoning import create_dataset, YourTaskGenerator
+from .your_reasoning import create_dataset
 
-__all__ = ['create_dataset', 'YourTaskGenerator']
+__all__ = ['create_dataset']
 ```
 
-### Step 3: Create PROMPTS.py
+### Step 4: Create PROMPTS.py
 
 Create `vmevalkit/tasks/your_task/PROMPTS.py`:
 
@@ -147,7 +208,7 @@ PROMPTS = [
 ]
 ```
 
-### Step 4: Implement Task Generation
+### Step 5: Implement Task Generation
 
 Create `vmevalkit/tasks/your_task/your_reasoning.py`:
 
@@ -288,17 +349,186 @@ def create_solution_image(solution_data: Any, output_path: Path):
     plt.close()
 ```
 
-### Step 5: Run Dataset Generation
+### Step 6: Create Documentation
+
+Create `vmevalkit/tasks/your_task/YOUR_TASK.md`:
+
+```markdown
+# Your Task
+
+## Overview
+Brief description of what this task tests.
+
+## Task Description
+Detailed explanation of the reasoning capability.
+
+## Technical Details
+- **Domain**: `your_task`
+- **Module**: `vmevalkit.tasks.your_task`
+- **Generation**: Local (programmatic)
+```
+
+### Step 7: Run Dataset Generation
 
 ```bash
 python vmevalkit/runner/create_dataset.py --pairs-per-domain 50
 ```
 
-That's it! Your task is now integrated into VMEvalKit.
+That's it! Your locally generated task is now integrated into VMEvalKit.
 
-## 📝 Complete Implementation Example: Sudoku Task
+---
 
-Here's a real, complete implementation from the codebase:
+## 📥 Path B: Downloaded Task (HuggingFace)
+
+### Step 1: Register Your Task
+
+Add to `vmevalkit/runner/TASK_CATALOG.py`:
+
+```python
+DOMAIN_REGISTRY = {
+    # ... existing tasks ...
+    'your_hf_task': {
+        'name': 'Your HF Task',
+        'description': 'Description from external dataset',
+        'module': 'vmevalkit.tasks.external.your_hf_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    }
+}
+```
+
+### Step 2: Create Task Folder Structure
+
+```bash
+mkdir vmevalkit/tasks/external/your_hf_task
+```
+
+### Step 3: Create Module Init
+
+Create `vmevalkit/tasks/external/your_hf_task/__init__.py`:
+
+```python
+"""Your HuggingFace Task for VMEvalKit."""
+
+from .your_hf_download import create_dataset
+
+__all__ = ['create_dataset']
+```
+
+### Step 4: Implement Download Logic
+
+Create `vmevalkit/tasks/external/your_hf_task/your_hf_download.py`:
+
+```python
+#!/usr/bin/env python3
+"""
+Your HuggingFace Task for VMEvalKit
+
+Downloads tasks from HuggingFace dataset.
+
+Author: VMEvalKit Team
+"""
+
+from typing import Dict, Any, List
+
+
+def create_dataset(num_samples: int = None) -> Dict[str, Any]:
+    """
+    Download tasks from HuggingFace.
+    
+    Args:
+        num_samples: Not used for HuggingFace downloads (downloads all available)
+        
+    Returns:
+        Dataset dictionary with 'pairs' key containing task data
+    """
+    from datasets import load_dataset
+    
+    print(f"📥 Downloading tasks from HuggingFace...")
+    
+    # Load from HuggingFace
+    dataset = load_dataset('your-org/your-dataset', 'subset', split='test')
+    
+    pairs = []
+    for idx, item in enumerate(dataset):
+        task_id = f"your_hf_task_{idx:04d}"
+        
+        # Extract data from HuggingFace format
+        prompt = item.get('prompt', '')
+        first_image = item.get('image')
+        solution_image = item.get('solution_image')
+        
+        if not prompt or first_image is None:
+            continue
+            
+        # Convert to VMEvalKit format
+        pair = {
+            'id': task_id,
+            'domain': 'your_hf_task',
+            'prompt': prompt,
+            'first_image': first_image,
+            'solution_image': solution_image,
+        }
+        
+        pairs.append(pair)
+    
+    print(f"   ✅ Downloaded {len(pairs)} tasks")
+    
+    return {
+        'name': 'your_hf_task',
+        'pairs': pairs,
+        'source': 'huggingface',
+        'hf_dataset': 'your-org/your-dataset',
+        'hf_subset': 'subset'
+    }
+```
+
+### Step 5: Create Documentation
+
+Create `vmevalkit/tasks/external/your_hf_task/YOUR_HF_TASK.md`:
+
+```markdown
+# Your HuggingFace Task
+
+## Overview
+Description of the external dataset.
+
+## Data Source
+- **Dataset**: your-org/your-dataset
+- **Subset**: subset_name
+- **Split**: test
+- **Type**: HuggingFace download
+
+## Task Format
+Each task pair consists of:
+- **First Frame**: Initial problem state
+- **Final Frame**: Solution state
+- **Prompt**: Instructions from dataset
+
+## Technical Details
+- **Domain**: `your_hf_task`
+- **Module**: `vmevalkit.tasks.your_hf_task`
+- **Download Function**: `create_dataset()`
+
+## References
+- HuggingFace Dataset: https://huggingface.co/datasets/your-org/your-dataset
+```
+
+### Step 6: Run Dataset Download
+
+```bash
+python vmevalkit/runner/create_dataset.py --pairs-per-domain all
+```
+
+Your downloaded task is now integrated!
+
+---
+
+## 📝 Complete Examples from Codebase
+
+### Example 1: Locally Generated Task (Sudoku)
+
+Here's a complete implementation of a locally generated task:
 
 ### File: `vmevalkit/tasks/sudoku_task/PROMPTS.py`
 
@@ -482,6 +712,127 @@ def create_dataset(num_samples: int = 50) -> Dict[str, Any]:
         }
     }
 ```
+
+### Example 2: Downloaded Task (VideoThinkBench ARC AGI)
+
+Here's a complete implementation of a HuggingFace-based task:
+
+### File: `vmevalkit/tasks/external/videothinkbench_arc_agi_task/__init__.py`
+
+```python
+"""VideoThinkBench ARC AGI Task for VMEvalKit."""
+
+from .arc_agi_download import create_dataset
+
+__all__ = ['create_dataset']
+```
+
+### File: `vmevalkit/tasks/external/videothinkbench_arc_agi_task/arc_agi_download.py`
+
+```python
+#!/usr/bin/env python3
+"""
+VideoThinkBench ARC AGI Task for VMEvalKit
+
+Downloads ARC AGI reasoning tasks from HuggingFace.
+
+Author: VMEvalKit Team
+"""
+
+from typing import Dict, Any, List
+
+
+def create_dataset(num_samples: int = None) -> Dict[str, Any]:
+    """
+    Download ARC AGI dataset from HuggingFace.
+    
+    Args:
+        num_samples: Not used for HuggingFace downloads (downloads all available)
+        
+    Returns:
+        Dataset dictionary with 'pairs' key containing task data
+    """
+    from datasets import load_dataset
+    
+    print(f"📥 Downloading ARC AGI tasks from HuggingFace...")
+    
+    dataset = load_dataset('OpenMOSS-Team/VideoThinkBench', 'ARC_AGI_2', split='test')
+    
+    pairs = []
+    for idx, item in enumerate(dataset):
+        task_id = f"arc_agi_2_{idx:04d}"
+        
+        prompt = item.get('prompt', '')
+        first_image = item.get('image')
+        solution_image = item.get('solution_image')
+        
+        if not prompt or first_image is None:
+            continue
+            
+        pair = {
+            'id': task_id,
+            'domain': 'arc_agi_2',
+            'prompt': prompt,
+            'first_image': first_image,
+            'solution_image': solution_image,
+        }
+        
+        pairs.append(pair)
+    
+    print(f"   ✅ Downloaded {len(pairs)} ARC AGI tasks")
+    
+    return {
+        'name': 'arc_agi_2',
+        'pairs': pairs,
+        'source': 'huggingface',
+        'hf_dataset': 'OpenMOSS-Team/VideoThinkBench',
+        'hf_subset': 'ARC_AGI_2'
+    }
+```
+
+### File: `vmevalkit/tasks/external/videothinkbench_arc_agi_task/ARC_AGI.md`
+
+```markdown
+# ARC AGI 2 Task
+
+## Overview
+
+The ARC AGI 2 (Abstraction and Reasoning Corpus) task tests abstract reasoning 
+and pattern recognition abilities. This task is sourced from the VideoThinkBench 
+dataset on HuggingFace.
+
+## Data Source
+
+- **Dataset**: OpenMOSS-Team/VideoThinkBench
+- **Subset**: ARC_AGI_2
+- **Split**: test
+- **Type**: HuggingFace download (not locally generated)
+
+## Task Format
+
+Each task pair consists of:
+- **First Frame**: Initial puzzle state with input grid
+- **Final Frame**: Solution state showing the correct output
+- **Prompt**: Instructions from the dataset describing the task
+
+## Technical Details
+
+- **Domain**: `arc_agi_2`
+- **Module**: `vmevalkit.tasks.external.videothinkbench_arc_agi_task`
+- **Download Function**: `create_dataset()`
+- **Task ID Format**: `arc_agi_2_{id:04d}`
+
+## References
+
+- VideoThinkBench: https://huggingface.co/datasets/OpenMOSS-Team/VideoThinkBench
+- ARC Challenge: https://github.com/fchollet/ARC
+```
+
+**Key Differences from Locally Generated Tasks:**
+- ❌ No `PROMPTS.py` file (prompts come from dataset)
+- ❌ No image generation code (images from dataset)
+- ✅ Simple download and format conversion
+- ✅ Minimal code required
 
 ## 🎨 Image Generation Best Practices
 
@@ -886,13 +1237,20 @@ TASK_IDEAS = {
 
 Before submitting your task, ensure:
 
-### Code Structure
+### Code Structure (All Tasks)
 - [ ] Created `vmevalkit/tasks/{task_name}_task/` directory
-- [ ] Implemented `{task_name}_reasoning.py` with `create_dataset()`
-- [ ] Created `PROMPTS.py` with prompt templates
+- [ ] Implemented Python file with `create_dataset()` function
 - [ ] Added `__init__.py` with proper exports
 - [ ] Created `{TASK_NAME}.md` documentation
-- [ ] Added entry to `DOMAIN_REGISTRY`
+- [ ] Added entry to `DOMAIN_REGISTRY` in `TASK_CATALOG.py`
+
+### Code Structure (Locally Generated Tasks Only)
+- [ ] Created `PROMPTS.py` with prompt templates
+- [ ] Implemented image generation logic
+
+### Code Structure (Downloaded Tasks Only)
+- [ ] Implemented download logic from external source
+- [ ] Added data format conversion
 
 ### Functionality
 - [ ] `create_dataset(num_samples)` works correctly
@@ -982,16 +1340,33 @@ def create_dataset(num_samples: int = 50, batch_size: int = 10) -> Dict[str, Any
 
 ## 🎓 Summary
 
-Adding a task to VMEvalKit is straightforward:
+Adding a task to VMEvalKit is straightforward with two paths:
 
+### Path A: Locally Generated Tasks
 1. **Register** in `DOMAIN_REGISTRY`
 2. **Create** module with `create_dataset()` function
-3. **Generate** PNG images for first/final frames
-4. **Include** all required metadata fields
-5. **Test** thoroughly
+3. **Add** `PROMPTS.py` with prompt templates
+4. **Generate** PNG images for first/final frames
+5. **Include** all required metadata fields
+6. **Test** thoroughly
 
-The system handles all the integration complexity - you just need to focus on generating interesting reasoning challenges!
+### Path B: Downloaded Tasks
+1. **Register** in `DOMAIN_REGISTRY`
+2. **Create** module with `create_dataset()` function
+3. **Implement** download logic from external source
+4. **Convert** to VMEvalKit format
+5. **Add** documentation with source details
+6. **Test** thoroughly
+
+The system provides a uniform interface for both types - you just need to focus on either generating interesting reasoning challenges or integrating valuable external datasets!
+
+## 🌟 Benefits of Unified Interface
+
+✅ **Consistency**: Both task types use the same `create_dataset()` interface  
+✅ **Flexibility**: Mix locally generated and downloaded tasks seamlessly  
+✅ **Simplicity**: Registry doesn't need to know implementation details  
+✅ **Extensibility**: Easy to add new tasks of either type  
 
 ---
 
-Ready to add your reasoning task? Follow this guide and contribute to advancing video model evaluation! 🚀
+Ready to add your reasoning task? Choose your path and contribute to advancing video model evaluation! 🚀

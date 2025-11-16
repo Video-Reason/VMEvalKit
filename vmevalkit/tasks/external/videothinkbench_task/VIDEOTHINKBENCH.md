@@ -26,7 +26,7 @@ VideoThinkBench combines multiple reasoning domains:
 This is a convenience task for downloading all VideoThinkBench subsets at once:
 
 ```python
-from vmevalkit.tasks.videothinkbench_task import create_dataset
+from vmevalkit.tasks.external.videothinkbench_task import create_dataset
 
 # Download all VideoThinkBench tasks
 dataset = create_dataset()
@@ -34,11 +34,11 @@ dataset = create_dataset()
 ```
 
 Alternatively, you can download individual subsets:
-- `vmevalkit.tasks.videothinkbench_arc_agi_task`
-- `vmevalkit.tasks.videothinkbench_eyeballing_puzzles_task`
-- `vmevalkit.tasks.videothinkbench_visual_puzzles_task`
-- `vmevalkit.tasks.videothinkbench_mazes_task`
-- `vmevalkit.tasks.videothinkbench_text_centric_tasks_task`
+- `vmevalkit.tasks.external.videothinkbench_arc_agi_task`
+- `vmevalkit.tasks.external.videothinkbench_eyeballing_puzzles_task`
+- `vmevalkit.tasks.external.videothinkbench_visual_puzzles_task`
+- `vmevalkit.tasks.external.videothinkbench_mazes_task`
+- `vmevalkit.tasks.external.videothinkbench_text_centric_tasks_task`
 
 ## Task Format
 
@@ -59,7 +59,7 @@ The complete VideoThinkBench includes:
 ## Technical Details
 
 - **Domain**: `videothinkbench`
-- **Module**: `vmevalkit.tasks.videothinkbench_task`
+- **Module**: `vmevalkit.tasks.external.videothinkbench_task`
 - **Download Function**: `create_dataset()`
 - **Special Flag**: `hf_meta: True` (downloads all subsets)
 - **Task ID Format**: `{subset_name}_{id:04d}`

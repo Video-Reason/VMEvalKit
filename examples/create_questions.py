@@ -30,7 +30,7 @@ from vmevalkit.runner.dataset import (
     print_dataset_summary,
     download_hf_domain_to_folders
 )
-from vmevalkit.utils.constant import DOMAIN_REGISTRY
+from vmevalkit.runner.TASK_CATALOG import DOMAIN_REGISTRY
 
 def main():
     """Flexible VMEvalKit question creation with customizable options."""

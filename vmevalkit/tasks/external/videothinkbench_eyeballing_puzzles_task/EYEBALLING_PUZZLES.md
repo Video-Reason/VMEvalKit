@@ -44,7 +44,7 @@ Models are evaluated on their ability to:
 ## Technical Details
 
 - **Domain**: `eyeballing_puzzles`
-- **Module**: `vmevalkit.tasks.videothinkbench_eyeballing_puzzles_task`
+- **Module**: `vmevalkit.tasks.external.videothinkbench_eyeballing_puzzles_task`
 - **Download Function**: `create_dataset()`
 - **Task ID Format**: `eyeballing_puzzles_{id:04d}`
 

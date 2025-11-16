@@ -37,7 +37,7 @@ Models are evaluated on their ability to:
 ## Technical Details
 
 - **Domain**: `mazes`
-- **Module**: `vmevalkit.tasks.videothinkbench_mazes_task`
+- **Module**: `vmevalkit.tasks.external.videothinkbench_mazes_task`
 - **Download Function**: `create_dataset()`
 - **Task ID Format**: `mazes_{id:04d}`
 

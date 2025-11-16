@@ -44,7 +44,7 @@ Models are evaluated on their ability to:
 ## Technical Details
 
 - **Domain**: `visual_puzzles`
-- **Module**: `vmevalkit.tasks.videothinkbench_visual_puzzles_task`
+- **Module**: `vmevalkit.tasks.external.videothinkbench_visual_puzzles_task`
 - **Download Function**: `create_dataset()`
 - **Task ID Format**: `visual_puzzles_{id:04d}`
 

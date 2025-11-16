@@ -27,7 +27,7 @@ from typing import Dict, List, Any, Tuple
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from vmevalkit.utils.constant import DOMAIN_REGISTRY
+from vmevalkit.runner.TASK_CATALOG import DOMAIN_REGISTRY
 
 # Domain Registry: Scalable way to add new domains
 # ============================================================

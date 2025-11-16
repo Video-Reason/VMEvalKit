@@ -36,7 +36,7 @@ Models are evaluated on their ability to:
 ## Technical Details
 
 - **Domain**: `arc_agi_2`
-- **Module**: `vmevalkit.tasks.videothinkbench_arc_agi_task`
+- **Module**: `vmevalkit.tasks.external.videothinkbench_arc_agi_task`
 - **Download Function**: `create_dataset()`
 - **Task ID Format**: `arc_agi_2_{id:04d}`
 

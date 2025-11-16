@@ -45,7 +45,7 @@ Models are evaluated on their ability to:
 ## Technical Details
 
 - **Domain**: `text_centric_tasks`
-- **Module**: `vmevalkit.tasks.videothinkbench_text_centric_tasks_task`
+- **Module**: `vmevalkit.tasks.external.videothinkbench_text_centric_tasks_task`
 - **Download Function**: `create_dataset()`
 - **Task ID Format**: `text_centric_tasks_{id:04d}`
 

@@ -51,7 +51,7 @@ Unlike single-frame evaluation, MME-CoF focuses on:
 ## Technical Details
 
 - **Domain**: `mme_cof`
-- **Module**: `vmevalkit.tasks.mme_cof_task`
+- **Module**: `vmevalkit.tasks.external.mme_cof_task`
 - **Download Function**: `create_dataset()`
 - **Task ID Format**: `mme_cof_{id:04d}`
 
@@ -66,7 +66,7 @@ Models can be evaluated on:
 ## Usage
 
 ```python
-from vmevalkit.tasks.mme_cof_task import create_dataset
+from vmevalkit.tasks.external.mme_cof_task import create_dataset
 
 # Download MME-CoF tasks
 dataset = create_dataset()
