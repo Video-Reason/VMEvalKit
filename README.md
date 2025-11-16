@@ -27,14 +27,17 @@ VMEvalKit provides unified access to **40 video generation models** across **11 
 | **Runway ML** | 3 | Gen-3A Turbo, Gen-4 Turbo, Gen-4 Aleph | 
 | **OpenAI Sora** | 2 | Sora-2, Sora-2-Pro (4s/8s/12s durations) | 
 
-### Open-Source Models (8 models)
+### Open-Source Models
 
 | Provider | Models | Key Features | Hardware Requirements |
 |----------|---------|-------------|----------------------|
-| **LTX-Video** | 3 | 2B/13B variants, real-time generation | GPU with 16GB+ VRAM |
 | **HunyuanVideo** | 1 | High-quality 720p I2V | GPU with 24GB+ VRAM |
 | **VideoCrafter** | 1 | Text-guided video synthesis | GPU with 16GB+ VRAM |
 | **DynamiCrafter** | 3 | 256p/512p/1024p, image animation | GPU with 12-24GB VRAM |
+| **Stable Video Diffusion** | 1 | Video generation | GPU with 16GB+ VRAM |
+| **Morphic** | 1 | Video generation | GPU with 16GB+ VRAM |
+| **LTX-Video** | 1 | Video generation | GPU with 16GB+ VRAM |
+
 
 ### Basic Idea
 
@@ -101,6 +104,8 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
+For open-source video generation and evaluator models, please refer to [**Open Source Models**](./examples/opensource/open_source.md) for detailed installation instructions.
+
 ## 🚀 Quick Start - End-to-End Example
 
 Here's a complete workflow from creating questions to scoring results:
@@ -132,8 +137,6 @@ python examples/score_videos.py human
 
 # Option B: Automated GPT-4O scoring
 python examples/score_videos.py gpt4o
-
-# Output: Creates data/scorings/ with scoring results
 ```
 
 ### 4️⃣ View Results
