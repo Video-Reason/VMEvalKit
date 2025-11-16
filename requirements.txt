@@ -84,3 +84,4 @@ Flask-Talisman>=1.1.0  # Security headers
 
 ipython>=9.6.0
 zanj>=0.5.1
+transformers>=4.55.2
