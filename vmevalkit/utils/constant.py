@@ -123,20 +123,16 @@ DOMAIN_REGISTRY = {
     },
     'mme_cof': {
         'name': 'MME-CoF',
-        'description': 'Video Chain-of-Frame reasoning evaluation across 12 cognitive domains (59 tasks)',
+        'description': 'Video Chain-of-Frame reasoning evaluation across 16 cognitive domains (59 tasks)',
         'module': 'vmevalkit.tasks.mme_cof_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs'],
-        'emoji': '🎬',
         'hf': True,
-        'hf_dataset': 'YourOrg/MME-CoF-VMEval',  # TODO: Update with your HuggingFace org/dataset name
+        'hf_dataset': 'VideoReason/MME-CoF-VMEval',
         'hf_subset': None,
         'hf_split': 'train',
-        'hf_domain': 'mme_cof',
-        'hf_task_id_prefix': 'mme_cof',
-        'hf_prompt_column': 'prompt',  # Generated prompts
+        'hf_prompt_column': 'prompt',
         'hf_image_column': 'image',
-        'hf_solution_image_column': 'solution_image',  # LLM-generated solutions
-        'hf_category_column': 'category',  # Reasoning category metadata
+        'hf_solution_image_column': 'solution_image',
     }
 }
