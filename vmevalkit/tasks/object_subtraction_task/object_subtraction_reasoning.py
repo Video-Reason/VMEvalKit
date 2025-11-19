@@ -282,6 +282,7 @@ class RuleGenerator:
                         prompt_index: int = 0) -> Tuple[Dict[str, Any], str]:
         """
         Generate Level 1 rule: Remove objects by explicit visual attributes.
+        Supports: color, shape, largest, smallest
         
         Args:
             objects: List of objects
@@ -290,8 +291,9 @@ class RuleGenerator:
         Returns:
             (rule_dict, prompt_text)
         """
-        # Choose a removal criterion (color or shape)
-        criterion_type = self.rng.choice(["color", "shape"])
+        # Choose a removal criterion (color, shape, largest, or smallest)
+        # Level 1 size-based rules are simpler: can remove all objects with max/min size
+        criterion_type = self.rng.choice(["color", "shape", "size"])
         
         if criterion_type == "color":
             # Find all unique colors
@@ -328,9 +330,9 @@ class RuleGenerator:
                 prompt = prompt.replace("yellow", remove_color)
             else:
                 # Use generic prompt
-                prompt = f"Remove all {remove_color} objects from the scene. Keep all other objects in their exact positions."
+                prompt = f"Remove all {remove_color} objects from the scene. Do not do anything to other objects."
         
-        else:  # shape
+        elif criterion_type == "shape":
             # Find all unique shapes
             shapes = list(set(obj["shape"] for obj in objects))
             remove_shape = self.rng.choice(shapes)
@@ -347,7 +349,150 @@ class RuleGenerator:
             
             # Generate prompt
             shape_name = remove_shape.capitalize()
-            prompt = f"Remove all {shape_name.lower()} objects from the scene. Keep all other objects in their exact positions."
+            prompt = f"Remove all {shape_name.lower()} objects from the scene. Do not do anything to other objects."
+        
+        else:  # size (largest or smallest)
+            # Level 1 size rules: ensure visual distinction for largest/smallest
+            # The selected object must be SIGNIFICANTLY larger/smaller than others
+            sizes = [obj["size"] for obj in objects]
+            max_size = max(sizes)
+            min_size = min(sizes)
+            
+            # Minimum visual distinction threshold (in pixels)
+            # This ensures the largest/smallest object is clearly visible and distinguishable
+            # Using 5 pixels (about 20% of the 20-40 size range) for reasonable visual distinction
+            MIN_SIZE_DIFFERENCE = 5  # At least 5 pixels difference for clear visual distinction
+            
+            # If all objects have the same size, fallback to color or shape
+            if max_size == min_size:
+                # All objects same size, fallback to color
+                colors = list(set(obj["color"] for obj in objects))
+                if len(colors) >= 2:
+                    criterion_type = "color"
+                else:
+                    # Fallback to shape
+                    criterion_type = "shape"
+                # Recursively call with new criterion type (but avoid infinite loop by not choosing size again)
+                if criterion_type == "color":
+                    remove_color = self.rng.choice(colors)
+                    target_object_ids = [obj["id"] for obj in objects if obj["color"] == remove_color]
+                    rule = {
+                        "level": "L1",
+                        "rule_type": "color",
+                        "remove_color": remove_color,
+                        "target_object_ids": target_object_ids
+                    }
+                    prompt = f"Remove all {remove_color} objects from the scene. Do not do anything to other objects."
+                else:
+                    shapes = list(set(obj["shape"] for obj in objects))
+                    remove_shape = self.rng.choice(shapes)
+                    target_object_ids = [obj["id"] for obj in objects if obj["shape"] == remove_shape]
+                    rule = {
+                        "level": "L1",
+                        "rule_type": "shape",
+                        "remove_shape": remove_shape,
+                        "target_object_ids": target_object_ids
+                    }
+                    shape_name = remove_shape.capitalize()
+                    prompt = f"Remove all {shape_name.lower()} objects from the scene. Do not do anything to other objects."
+            else:
+                # Check if we can create visually distinct largest/smallest
+                # Calculate size differences to ensure visual clarity
+                sorted_sizes = sorted(set(sizes))
+                size_gap = max_size - min_size
+                
+                # Check if largest is visually distinct
+                largest_distinct = False
+                if len(sorted_sizes) >= 2:
+                    # Largest must be at least MIN_SIZE_DIFFERENCE pixels larger than second largest
+                    second_largest = sorted_sizes[-2]
+                    largest_gap = max_size - second_largest
+                    if largest_gap >= MIN_SIZE_DIFFERENCE:
+                        largest_distinct = True
+                
+                # Check if smallest is visually distinct
+                smallest_distinct = False
+                if len(sorted_sizes) >= 2:
+                    # Smallest must be at least MIN_SIZE_DIFFERENCE pixels smaller than second smallest
+                    second_smallest = sorted_sizes[1]
+                    smallest_gap = second_smallest - min_size
+                    if smallest_gap >= MIN_SIZE_DIFFERENCE:
+                        smallest_distinct = True
+                
+                # If neither is visually distinct enough, fallback to color or shape
+                if not largest_distinct and not smallest_distinct:
+                    # Size differences not clear enough, fallback to color or shape
+                    colors = list(set(obj["color"] for obj in objects))
+                    if len(colors) >= 2:
+                        criterion_type = "color"
+                    else:
+                        criterion_type = "shape"
+                    
+                    if criterion_type == "color":
+                        remove_color = self.rng.choice(colors)
+                        target_object_ids = [obj["id"] for obj in objects if obj["color"] == remove_color]
+                        rule = {
+                            "level": "L1",
+                            "rule_type": "color",
+                            "remove_color": remove_color,
+                            "target_object_ids": target_object_ids
+                        }
+                        prompt = f"Remove all {remove_color} objects from the scene. Do not do anything to other objects."
+                    else:
+                        shapes = list(set(obj["shape"] for obj in objects))
+                        remove_shape = self.rng.choice(shapes)
+                        target_object_ids = [obj["id"] for obj in objects if obj["shape"] == remove_shape]
+                        rule = {
+                            "level": "L1",
+                            "rule_type": "shape",
+                            "remove_shape": remove_shape,
+                            "target_object_ids": target_object_ids
+                        }
+                        shape_name = remove_shape.capitalize()
+                        prompt = f"Remove all {shape_name.lower()} objects from the scene. Do not do anything to other objects."
+                else:
+                    # Choose between largest and smallest, but only if visually distinct
+                    available_types = []
+                    if largest_distinct:
+                        available_types.append("largest")
+                    if smallest_distinct:
+                        available_types.append("smallest")
+                    
+                    # If both are available, randomly choose; otherwise use the available one
+                    if len(available_types) > 0:
+                        size_type = self.rng.choice(available_types)
+                    else:
+                        # Should not happen, but fallback
+                        size_type = "largest" if largest_distinct else "smallest"
+                    
+                    if size_type == "largest":
+                        # Remove all objects with maximum size (can be multiple, but must be visually distinct)
+                        target_object_ids = [obj["id"] for obj in objects if obj["size"] == max_size]
+                        rule = {
+                            "level": "L1",
+                            "rule_type": "size",
+                            "size_type": "largest",
+                            "target_object_ids": target_object_ids
+                        }
+                        # Use singular if only one, plural if multiple
+                        if len(target_object_ids) == 1:
+                            prompt = "Remove the largest object. Do not do anything to other objects."
+                        else:
+                            prompt = f"Remove all largest objects. Do not do anything to other objects."
+                    else:  # smallest
+                        # Remove all objects with minimum size (can be multiple, but must be visually distinct)
+                        target_object_ids = [obj["id"] for obj in objects if obj["size"] == min_size]
+                        rule = {
+                            "level": "L1",
+                            "rule_type": "size",
+                            "size_type": "smallest",
+                            "target_object_ids": target_object_ids
+                        }
+                        # Use singular if only one, plural if multiple
+                        if len(target_object_ids) == 1:
+                            prompt = "Remove the smallest object. Do not do anything to other objects."
+                        else:
+                            prompt = f"Remove all smallest objects. Do not do anything to other objects."
         
         return rule, prompt
     
@@ -836,46 +981,9 @@ class RuleGenerator:
         attributes = self._calculate_conceptual_attributes(objects)
         
         # Define available conceptual relation types
+        # Level 4 now ONLY focuses on outlier detection (remove_outlier)
+        # Largest/smallest have been moved to Level 1
         relation_types = []
-        
-        # Size-based relations - focus on "the largest" and "the smallest" (singular)
-        # This ensures we remove THE ONE largest/smallest object, not all large/small objects
-        # CRITICAL: Ensure ABSOLUTE visual distinction - the selected object must stand out
-        sizes = [obj["size"] for obj in objects]
-        max_size = max(sizes)
-        min_size = min(sizes)
-        
-        # Only add if there's an ABSOLUTE size difference (at least 30 pixels between max and min)
-        # AND the selected object is clearly different from the next closest object
-        max_size_count = sum(1 for s in sizes if s == max_size)
-        min_size_count = sum(1 for s in sizes if s == min_size)
-        size_gap = max_size - min_size
-        
-        # Require MINIMUM 32 pixel gap between max and min for overall distinction
-        # (50-18=32 is the maximum possible gap, so we use 32 as threshold)
-        MIN_SIZE_GAP = 32
-        # Require MINIMUM 20 pixel gap between selected object and next closest (increased for more obviousness)
-        # This ensures the selected object is visually OBVIOUS and stands out clearly
-        MIN_ISOLATION_GAP = 20
-        
-        if size_gap >= MIN_SIZE_GAP:  # Overall gap is sufficient (32px is maximum with 18-50 range)
-            # Check if largest is isolated (clearly larger than second largest)
-            if max_size_count == 1:  # Exactly one largest
-                sorted_sizes = sorted(set(sizes), reverse=True)
-                if len(sorted_sizes) >= 2:
-                    second_largest = sorted_sizes[1]
-                    largest_isolation = max_size - second_largest
-                    if largest_isolation >= MIN_ISOLATION_GAP:
-                        relation_types.append("remove_largest")  # Remove THE largest (singular)
-            
-            # Check if smallest is isolated (clearly smaller than second smallest)
-            if min_size_count == 1:  # Exactly one smallest
-                sorted_sizes = sorted(set(sizes))
-                if len(sorted_sizes) >= 2:
-                    second_smallest = sorted_sizes[1]
-                    smallest_isolation = second_smallest - min_size
-                    if smallest_isolation >= MIN_ISOLATION_GAP:
-                        relation_types.append("remove_smallest")  # Remove THE smallest (singular)
         
         # Similarity-based relations (outlier detection)
         # Focus on "the one that looks different" - ensure only ONE outlier
@@ -888,63 +996,30 @@ class RuleGenerator:
         
         majority_combo = max(combo_counts.items(), key=lambda x: x[1], default=None)
         
-        # Only add outlier if there's a VERY clear majority (>=70%) and exactly ONE outlier
+        # Only add outlier if there's a clear majority (>=50%) and exactly ONE outlier
+        # Lowered from 70% to 50% to make it easier to generate L4 tasks
         # This ensures the outlier is OBVIOUS and stands out clearly
-        if majority_combo and majority_combo[1] >= len(objects) * 0.7:
+        if majority_combo and majority_combo[1] >= len(objects) * 0.5:
             # Count how many objects are NOT in the majority
             outlier_count = len(objects) - majority_combo[1]
             if outlier_count == 1:  # Exactly ONE outlier
                 relation_types.append("remove_outlier")  # Remove THE one that looks different
         
-        # REMOVED: keep_same_shape and keep_same_color
-        # These are NOT true relative concepts - they're explicit attribute matching (L1 level)
-        # Level 4 should ONLY focus on relative concepts: largest, smallest, outlier
+        # Level 4 now ONLY focuses on outlier detection (remove_outlier)
+        # Largest/smallest have been moved to Level 1
         
         if not relation_types:
             # Fallback to L1 if no suitable L4 rule can be generated
             return self.generate_l1_rule(objects, prompt_index)
         
-        # Prefer size-based tasks (remove_largest/smallest) over outlier if both are available
-        # This ensures we get a good mix of relative concept types
-        size_based_types = [rt for rt in relation_types if rt in ["remove_largest", "remove_smallest"]]
-        if size_based_types:
-            # If size-based tasks are available, prefer them (70% chance)
-            if self.rng.random() < 0.7:
-                relation_type = self.rng.choice(size_based_types)
-            else:
-                # Otherwise choose from all available types
-                relation_type = self.rng.choice(relation_types)
-        else:
-            # No size-based tasks available, choose from what's available
-            relation_type = self.rng.choice(relation_types)
+        # Only one relation type available now (remove_outlier)
+        relation_type = relation_types[0]
         
         # Select target objects based on relation type
         target_object_ids = []
         num_to_remove = 0
         
-        if relation_type == "remove_largest":
-            # Remove THE largest object (singular, exactly one)
-            sizes = [obj["size"] for obj in objects]
-            max_size = max(sizes)
-            target_object_ids = [obj["id"] for obj in objects if obj["size"] == max_size]
-            # Should be exactly one, but ensure it is
-            if len(target_object_ids) > 1:
-                # If tie, pick the first one (shouldn't happen due to our check)
-                target_object_ids = [target_object_ids[0]]
-            num_to_remove = len(target_object_ids)
-        
-        elif relation_type == "remove_smallest":
-            # Remove THE smallest object (singular, exactly one)
-            sizes = [obj["size"] for obj in objects]
-            min_size = min(sizes)
-            target_object_ids = [obj["id"] for obj in objects if obj["size"] == min_size]
-            # Should be exactly one, but ensure it is
-            if len(target_object_ids) > 1:
-                # If tie, pick the first one (shouldn't happen due to our check)
-                target_object_ids = [target_object_ids[0]]
-            num_to_remove = len(target_object_ids)
-        
-        elif relation_type == "remove_outlier":
+        if relation_type == "remove_outlier":
             # Remove THE one object that looks different (singular, exactly one)
             # This should be exactly one due to our check above
             target_object_ids = attributes["outlier_objects"]
@@ -976,9 +1051,10 @@ class RuleGenerator:
                            attributes: Dict[str, Any], objects: List[Dict[str, Any]]) -> str:
         """
         Generate prompt text for Level 4 based on conceptual relation type.
+        Level 4 now only supports remove_outlier (largest/smallest moved to L1).
         
         Args:
-            relation_type: Type of conceptual relation
+            relation_type: Type of conceptual relation (should be "remove_outlier")
             num_objects: Number of objects to remove
             attributes: Conceptual attributes dictionary
             objects: List of all objects
@@ -986,21 +1062,12 @@ class RuleGenerator:
         Returns:
             Prompt text
         """
-        if relation_type == "remove_largest":
-            # Always singular: "the largest"
-            prompt = "Remove the largest object. Keep all other objects in their exact positions."
-        
-        elif relation_type == "remove_smallest":
-            # Always singular: "the smallest"
-            prompt = "Remove the smallest object. Keep all other objects in their exact positions."
-        
-        elif relation_type == "remove_outlier":
+        if relation_type == "remove_outlier":
             # Always singular: "the one that looks different"
-            prompt = "Remove the object that looks different from the others. Keep all similar objects fixed in their positions."
-        
+            prompt = "Remove the object that looks different from the others. Do not do anything to other objects."
         else:
-            # Fallback prompt
-            prompt = f"Remove {num_objects} objects based on their conceptual properties. Keep all other objects in their exact positions."
+            # Fallback prompt (should not happen, but just in case)
+            prompt = f"Remove {num_objects} objects based on their conceptual properties. Do not do anything to other objects."
         
         return prompt
     
@@ -1017,79 +1084,79 @@ class RuleGenerator:
         """
         if relation_type == "leftmost":
             if num_objects == 1:
-                prompt = "Remove the leftmost object. Keep all other objects in their exact positions."
+                prompt = "Remove the leftmost object. Do not do anything to other objects."
             else:
-                prompt = f"Remove the {num_objects} leftmost objects. Keep all other objects in their exact positions."
+                prompt = f"Remove the {num_objects} leftmost objects. Do not do anything to other objects."
         
         elif relation_type == "rightmost":
             if num_objects == 1:
-                prompt = "Remove the rightmost object. Keep all other objects in their exact positions."
+                prompt = "Remove the rightmost object. Do not do anything to other objects."
             else:
-                prompt = f"Remove the {num_objects} rightmost objects. Keep all other objects in their exact positions."
+                prompt = f"Remove the {num_objects} rightmost objects. Do not do anything to other objects."
         
         elif relation_type == "topmost":
             if num_objects == 1:
-                prompt = "Remove the topmost object. Keep all other objects in their exact positions."
+                prompt = "Remove the topmost object. Do not do anything to other objects."
             else:
-                prompt = f"Remove the {num_objects} topmost objects. Keep all other objects in their exact positions."
+                prompt = f"Remove the {num_objects} topmost objects. Do not do anything to other objects."
         
         elif relation_type == "bottommost":
             if num_objects == 1:
-                prompt = "Remove the bottommost object. Keep all other objects in their exact positions."
+                prompt = "Remove the bottommost object. Do not do anything to other objects."
             else:
-                prompt = f"Remove the {num_objects} bottommost objects. Keep all other objects in their exact positions."
+                prompt = f"Remove the {num_objects} bottommost objects. Do not do anything to other objects."
         
         elif relation_type == "left_side":
             if num_objects == 1:
-                prompt = "Remove the object on the far left side of the screen. Keep all other objects in their exact positions."
+                prompt = "Remove the object on the far left side of the screen. Do not do anything to other objects."
             else:
-                prompt = f"Remove the {num_objects} objects on the far left side of the screen. Keep all other objects in their exact positions."
+                prompt = f"Remove the {num_objects} objects on the far left side of the screen. Do not do anything to other objects."
         
         elif relation_type == "right_side":
             if num_objects == 1:
-                prompt = "Remove the object on the far right side of the screen. Keep all other objects in their exact positions."
+                prompt = "Remove the object on the far right side of the screen. Do not do anything to other objects."
             else:
-                prompt = f"Remove the {num_objects} objects on the far right side of the screen. Keep all other objects in their exact positions."
+                prompt = f"Remove the {num_objects} objects on the far right side of the screen. Do not do anything to other objects."
         
         elif relation_type == "top_half":
-            prompt = "Remove all objects in the upper half of the image. Keep objects in the lower half unchanged."
+            prompt = "Remove all objects in the upper half of the image. Do not do anything to other objects."
         
         elif relation_type == "bottom_half":
-            prompt = "Remove all objects in the lower half of the image. Keep objects in the upper half unchanged."
+            prompt = "Remove all objects in the lower half of the image. Do not do anything to other objects."
         
         elif relation_type == "farthest_from_center":
             if num_objects == 1:
-                prompt = "Move the object farthest from the center out of view. Keep all remaining objects stationary."
+                prompt = "Move the object farthest from the center out of view. Do not do anything to other objects."
             else:
-                prompt = f"Move the {num_objects} objects farthest from the center out of view. Keep all remaining objects stationary."
+                prompt = f"Move the {num_objects} objects farthest from the center out of view. Do not do anything to other objects."
         
         elif relation_type == "nearest_to_center":
             if num_objects == 1:
-                prompt = "Remove the object nearest to the center. Keep all other objects in their exact positions."
+                prompt = "Remove the object nearest to the center. Do not do anything to other objects."
             else:
-                prompt = f"Remove the {num_objects} objects nearest to the center. Keep all other objects in their exact positions."
+                prompt = f"Remove the {num_objects} objects nearest to the center. Do not do anything to other objects."
         
         elif relation_type == "top_left_quadrant":
-            prompt = "Remove all objects in the top-left quadrant. Keep all other objects in their exact positions."
+            prompt = "Remove all objects in the top-left quadrant. Do not do anything to other objects."
         
         elif relation_type == "top_right_quadrant":
-            prompt = "Remove all objects in the top-right quadrant. Keep all other objects in their exact positions."
+            prompt = "Remove all objects in the top-right quadrant. Do not do anything to other objects."
         
         elif relation_type == "bottom_left_quadrant":
-            prompt = "Remove all objects in the bottom-left quadrant. Keep all other objects in their exact positions."
+            prompt = "Remove all objects in the bottom-left quadrant. Do not do anything to other objects."
         
         elif relation_type == "bottom_right_quadrant":
-            prompt = "Remove all objects in the bottom-right quadrant. Keep all other objects in their exact positions."
+            prompt = "Remove all objects in the bottom-right quadrant. Do not do anything to other objects."
         
         elif relation_type == "corner_closest":
             if num_objects == 1:
-                prompt = "Remove the object closest to a corner. Keep all other objects in their exact positions."
+                prompt = "Remove the object closest to a corner. Do not do anything to other objects."
             else:
-                prompt = f"Remove the {num_objects} objects closest to the corners. Keep all other objects in their exact positions."
+                prompt = f"Remove the {num_objects} objects closest to the corners. Do not do anything to other objects."
         
         else:
             # Fallback prompt
-            prompt = f"Remove {num_objects} objects based on spatial relations. Keep all other objects in their exact positions."
+            prompt = f"Remove {num_objects} objects based on spatial relations. Do not do anything to other objects."
         
         return prompt
     
@@ -1148,9 +1215,9 @@ class RuleGenerator:
                 target_descriptions.append(f"the {target['color']} {target['shape']}")
         
         if len(target_descriptions) == 2:
-            prompt = f"Remove {target_descriptions[0]} and {target_descriptions[1]} from the scene. Keep all other objects fixed in their positions."
+            prompt = f"Remove {target_descriptions[0]} and {target_descriptions[1]} from the scene. Do not do anything to other objects."
         else:  # 3 objects
-            prompt = f"Remove {target_descriptions[0]}, {target_descriptions[1]}, and {target_descriptions[2]} from the scene. Keep all other objects fixed in their positions."
+            prompt = f"Remove {target_descriptions[0]}, {target_descriptions[1]}, and {target_descriptions[2]} from the scene. Do not do anything to other objects."
         
         rule = {
             "level": "L2",
@@ -1234,6 +1301,31 @@ class ObjectSubtractionGenerator:
             num_objects = random.randint(self.num_objects_range[0], self.num_objects_range[1])
         
         objects = self.object_gen.generate_objects(num_objects, seed=seed)
+        
+        # For L4, actively create a clear majority to ensure outlier detection works
+        # This ensures we can generate proper L4 tasks (remove_outlier)
+        if level == "L4":
+            # Create a clear majority: most objects with same color+shape, one different
+            num_objects = len(objects)
+            majority_count = num_objects - 1  # All but one
+            
+            # Choose a majority color and shape
+            majority_color = self.rule_gen.rng.choice(ObjectGenerator.COLORS)
+            majority_shape = self.rule_gen.rng.choice(ObjectGenerator.SHAPES)
+            
+            # Choose an outlier color and shape (different from majority)
+            outlier_color = self.rule_gen.rng.choice([c for c in ObjectGenerator.COLORS if c != majority_color])
+            outlier_shape = self.rule_gen.rng.choice([s for s in ObjectGenerator.SHAPES if s != majority_shape])
+            
+            # Assign majority color+shape to most objects
+            for i, obj in enumerate(objects):
+                if i < majority_count:
+                    obj["color"] = majority_color
+                    obj["shape"] = majority_shape
+                else:
+                    # The last one is the outlier
+                    obj["color"] = outlier_color
+                    obj["shape"] = outlier_shape
         
         # For L4, ensure we have objects with extreme sizes to guarantee >=30 pixel gap
         # AND ensure the extreme objects are isolated (at least 15px from next closest)
@@ -1652,14 +1744,38 @@ class ObjectSubtractionGenerator:
                                                 obj["area"] = int(np.pi * (obj["size"] // 2) ** 2)
                                             break
                             
-                            # Don't actively create majority here - let rule generation decide
-                            # This allows size-based tasks to be generated when possible
+                            # For L4, actively create a clear majority to ensure outlier detection works
+                            # Generate a majority group (same color+shape) and one outlier
+                            if level == "L4" and attempt < max_retries - 1:
+                                # Create a clear majority: 5-6 objects with same color+shape, 1 different
+                                num_objects = len(objects)
+                                majority_count = num_objects - 1  # All but one
+                                
+                                # Choose a majority color and shape
+                                majority_color = self.rule_gen.rng.choice(ObjectGenerator.COLORS)
+                                majority_shape = self.rule_gen.rng.choice(ObjectGenerator.SHAPES)
+                                
+                                # Choose an outlier color and shape (different from majority)
+                                outlier_color = self.rule_gen.rng.choice([c for c in ObjectGenerator.COLORS if c != majority_color])
+                                outlier_shape = self.rule_gen.rng.choice([s for s in ObjectGenerator.SHAPES if s != majority_shape])
+                                
+                                # Assign majority color+shape to most objects
+                                for i, obj in enumerate(objects):
+                                    if i < majority_count:
+                                        obj["color"] = majority_color
+                                        obj["shape"] = majority_shape
+                                    else:
+                                        # The last one is the outlier
+                                        obj["color"] = outlier_color
+                                        obj["shape"] = outlier_shape
                             
                             self.object_gen.min_size = original_min
                             self.object_gen.max_size = original_max
                         continue  # Retry with new objects
             else:
-                raise ValueError(f"Level {level} not yet implemented")
+                # For L1, L2, L3, we should have generated rule and prompt successfully
+                # Break out of the loop to use the generated rule
+                break
         
         # For L4, if we still got L1 rule after retries, that's a problem
         # But we'll accept it as a last resort (should be rare with retries)
@@ -1703,13 +1819,15 @@ class ObjectSubtractionGenerator:
         return task_pair
 
 
-def create_dataset(num_samples: int = 50, levels: List[str] = ["L1", "L2", "L3", "L4"]) -> Dict[str, Any]:
+def create_dataset(num_samples: int = 50, levels: List[str] = ["L1", "L2", "L3", "L4"], 
+                   random_seed: int = 42) -> Dict[str, Any]:
     """
     Create object subtraction dataset - main entry point matching other tasks.
     
     Args:
         num_samples: Number of tasks to generate
         levels: List of cognitive levels to generate ("L1", "L2", "L3", "L4")
+        random_seed: Random seed for reproducible generation (default: 42)
         
     Returns:
         Dataset dictionary in standard format
@@ -1734,7 +1852,8 @@ def create_dataset(num_samples: int = 50, levels: List[str] = ["L1", "L2", "L3",
         
         for i in range(level_samples):
             task_id = f"object_subtraction_{level.lower()}_{i:04d}"
-            seed = 2025 + level_idx * 10000 + i  # Deterministic seed
+            # Use random_seed as base, then add level and index offsets for deterministic but unique seeds
+            seed = random_seed + level_idx * 10000 + i  # Deterministic seed based on random_seed
             
             try:
                 task_pair = generator.generate_single_task(task_id, level=level, seed=seed)
