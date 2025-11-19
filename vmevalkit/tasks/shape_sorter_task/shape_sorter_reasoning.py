@@ -89,12 +89,10 @@ class ShapeSorterRenderer:
 
     def _draw_layout(self, ax, solved: bool = False) -> None:
         w, h = self.canvas
-        bg = "#f8fafc" if not solved else "#ecfccb"
+        bg = "#f8fafc"
         ax.add_patch(Rectangle((0, 0), w, h, facecolor=bg, edgecolor="none"))
         divider = w * 0.5
-        ax.add_patch(Rectangle((divider - 4, 40), 8, h - 80, facecolor="#94a3b8", alpha=0.5, edgecolor="none"))
-        ax.text(divider - 80, 35, "cards", color="#475569", fontsize=12, weight="bold")
-        ax.text(divider + 20, 35, "slots", color="#475569", fontsize=12, weight="bold")
+        ax.add_patch(Rectangle((divider - 4, 40), 8, h - 80, facecolor="#94a3b8", alpha=0.35, edgecolor="none"))
 
     def _draw_outline(self, ax, center: Point, size: float, shape: str) -> None:
         self._draw_shape(ax, center, size, shape, "#64748b", filled=False, linewidth=3)
