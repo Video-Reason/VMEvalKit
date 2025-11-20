@@ -1506,7 +1506,7 @@ def create_dataset(num_samples: int = 50, levels: List[str] = ["L1", "L2", "L3",
         print(f"\n📊 Generating {level_samples} tasks for Level {level}...")
         
         for i in range(level_samples):
-            # Map level to type name: L1->type1, L2->type2, L3->type3, L4->type4
+            # Map level to type number: L1->type1, L2->type2, L3->type3, L4->type4
             type_name = level.lower().replace('l', 'type')
             task_id = f"object_subtraction_{type_name}_{i:04d}"
             # Use random_seed as base, then add level and index offsets for deterministic but unique seeds
