@@ -1,12 +1,20 @@
 # VMEvalKit 🎥🧠
 
+
+<div align="center">
+  <img src="figure/LOGO2.png" width="70%" style="vertical-align:-7px;" />
+
+
+[![Paper](https://img.shields.io/badge/Paper-A42C25?style=for-the-badge&logo=arxiv&logoColor=white)](https://github.com/hokindeng/VMEvalKit/blob/features/clocks/paper/video-models-start-to-solve/Video_Model_Start_to_Solve.pdf) [![Hugging Face Collection](https://img.shields.io/badge/Models-fcd022?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/VideoReason)  [![WeChat](https://img.shields.io/badge/WeChat--Group-07C160?style=for-the-badge&logo=wechat&logoColor=white)](https://github.com/hokindeng/VMEvalKit/issues/132)
+
+</div>
+
+
 A framework to score reasoning capabilities in video generation models at scale, through cognitive tasks. We **make it very convenient** to [**add models**](docs/ADDING_MODELS.md), [**add tasks**](docs/ADDING_TASKS.md), [**run inferences**](docs/INFERENCE.md), [**run scoring**](docs/SCORING.md), [**manage datasets**](docs/DATA_MANAGEMENT.md) and [**display results**](https://grow-ai-like-a-child.com/video-reason/). It's **permissively open-source**, and we welcome everyone to [**join**](https://join.slack.com/t/growingailikeachild/shared_invite/zt-309yqd0sl-W8xzOkdBPha1Jh5rnee78A) us and **build in public together**! 🚀 
 
 
 <p align="center">
-    <!-- <a href="asset/leaderboard.html">🏆 Leaderboard (Under Construction)</a> • -->
     <a href="https://grow-ai-like-a-child.com/video-reason/">🔍 Preliminary results</a> 
-    [![WeChat](https://img.shields.io/badge/WeChat--Group-07C160?style=for-the-badge&logo=wechat&logoColor=white)](https://github.com/hokindeng/VMEvalKit/issues/132)
 </p>
 
 ![VMEvalKit Framework](paper/video-models-start-to-solve/assets/draft_1.jpg)
