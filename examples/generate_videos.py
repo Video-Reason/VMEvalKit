@@ -7,7 +7,7 @@ Run on specific models, domains, or individual tasks with full control over the 
 
 Key Features:
 - Choose any available models from 40+ options across 11+ providers
-- Select specific domains (chess, maze, raven, rotation, sudoku) or individual task IDs
+- Select specific domains from all registered tasks (see TASK_CATALOG) or individual task IDs
 - Control number of tasks per domain or run all available tasks
 - Sequential execution with progress tracking and resume capability
 - Structured output with automatic organization
@@ -36,6 +36,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from vmevalkit.runner.inference import  InferenceRunner
 from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS, get_model_family
+from vmevalkit.runner.TASK_CATALOG import DOMAIN_REGISTRY
 
 
 # ========================================
@@ -58,8 +59,9 @@ QUESTIONS_DIR = Path("data/questions")
 # Output directory
 OUTPUT_DIR = Path("data/outputs/pilot_experiment")
 
-# Expected domains (for validation)
-EXPECTED_DOMAINS = ["chess", "maze", "raven", "rotation", "sudoku"]
+# Expected domains (dynamically loaded from TASK_CATALOG)
+# Note: This is used for validation - all registered domains are valid
+EXPECTED_DOMAINS = list(DOMAIN_REGISTRY.keys())
 
 # ========================================
 # FOLDER-BASED TASK DISCOVERY
@@ -502,7 +504,7 @@ Examples:
     parser.add_argument(
         "--task",
         nargs="+",
-        choices=["chess", "maze", "raven", "rotation", "sudoku"],
+        choices=list(DOMAIN_REGISTRY.keys()),
         default=None,
         help="Specific task domain(s) to run. If not specified, runs all domains."
     )
