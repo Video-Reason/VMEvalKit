@@ -40,7 +40,19 @@ VMEvalKit provides unified access to **40 video generation models** across **11 
 
 ## 📊 Supported Datasets
 
-VMEvalKit provides access to external benchmark datasets and **6 local task generation engines**:
+VMEvalKit provides access to **9 local task generation engines** (quickly increasing) and external benchmark datasets. See [task documentation](docs/tasks/README.md) for details.
+
+### Local Task Generation Engines
+
+| Task | Description | Generation Method |
+|------|-------------|-------------------|
+| **Chess** | Strategic thinking & tactical patterns | Chess engine with mate-in-1 puzzles |
+| **Maze** | Path-finding & navigation | Procedural maze generation (Kruskal's algorithm) |
+| **Raven** | Abstract reasoning matrices | RAVEN dataset patterns |
+| **Rotation** | 3D mental rotation | Procedural 3D object generation |
+| **Sudoku** | Logical constraint satisfaction | Sudoku puzzle generator |
+| **Object Subtraction** | Selective object removal | Multi-level cognitive reasoning |
+| **Clock** | Time-based reasoning | Clock time increment |
 
 ### External Benchmarks (HuggingFace)
 
@@ -53,17 +65,6 @@ VMEvalKit provides access to external benchmark datasets and **6 local task gene
 - `eyeballing_puzzles` - Visual estimation (1,050 tasks)  
 - `visual_puzzles` - Pattern recognition (496 tasks)
 - `text_centric_tasks` - Math & multimodal reasoning (1,453 tasks)
-
-### Local Task Generation Engines
-
-| Task | Description | Generation Method |
-|------|-------------|-------------------|
-| **Chess** | Strategic thinking & tactical patterns | Chess engine with mate-in-1 puzzles |
-| **Maze** | Path-finding & navigation | Procedural maze generation (Kruskal's algorithm) |
-| **Raven** | Abstract reasoning matrices | RAVEN dataset patterns |
-| **Rotation** | 3D mental rotation | Procedural 3D object generation |
-| **Sudoku** | Logical constraint satisfaction | Sudoku puzzle generator |
-| **Object Subtraction** | Selective object removal | Multi-level cognitive reasoning |
 
 All tasks follow the unified **First Frame → Final Frame** format with text prompts, enabling consistent evaluation across diverse reasoning domains.
 
