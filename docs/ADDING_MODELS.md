@@ -424,19 +424,6 @@ def _get_model_constraints(self, model: str) -> Dict[str, Any]:
     return constraints.get(model, constraints["model-v1"])
 ```
 
-## 🎓 Architecture Benefits Summary
-
-| **Aspect** | **Benefit** |
-|------------|-------------|
-| **Dynamic Loading** | Models loaded only when needed, reducing memory and startup time |
-| **String-based Registry** | No circular imports, clean dependency graph |
-| **Service + Wrapper Pattern** | Clear separation of API logic and VMEvalKit interface |
-| **Abstract Base Class** | Enforces consistent interface across all models |
-| **Family Organization** | Logical grouping for bulk operations and discovery |
-| **Standardized Returns** | Predictable data structure for all models |
-| **Error Handling** | Graceful failures with informative messages |
-| **Async Support** | Efficient handling of long-running operations |
-
 ---
 
 Ready to add your model? Follow this guide and your model will be seamlessly integrated into VMEvalKit's architecture! 🎯

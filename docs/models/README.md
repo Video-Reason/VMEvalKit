@@ -3,6 +3,8 @@
 
 VMEvalKit provides unified access to **40 video generation models** across **11 provider families**:
 
+For commercial APIs, we support Luma Dream Machine, Google Veo, Google Veo 3.1, WaveSpeed WAN 2.1, WaveSpeed WAN 2.2, Runway ML, OpenAI Sora.
+For open-source models, we support HunyuanVideo, VideoCrafter, DynamiCrafter, Stable Video Diffusion, Morphic, LTX-Video.
 
 ### Commercial APIs (32 models)
 
@@ -28,7 +30,6 @@ VMEvalKit provides unified access to **40 video generation models** across **11 
 | **LTX-Video** | 1 | Video generation | GPU with 16GB+ VRAM |
 
 
-For commercial APIs, we support Luma Dream Machine, Google Veo, Google Veo 3.1, WaveSpeed WAN 2.1, WaveSpeed WAN 2.2, Runway ML, OpenAI Sora.
-For open-source models, we support HunyuanVideo, VideoCrafter, DynamiCrafter, Stable Video Diffusion, Morphic, LTX-Video.
+
 
 
