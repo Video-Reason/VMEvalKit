@@ -6,15 +6,13 @@ Minimal modifications to fit VMEvalKit interface.
 All generation logic is preserved from Tin's original implementation.
 """
 
-import matplotlib
-matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import random
 import json
 import os
 import tempfile
-from typing import Dict, Any
+from typing import Dict, Any, Optional, Sequence
 
 # ============================================
 # Tin's Original Functions (UNCHANGED)
@@ -83,12 +81,15 @@ def count_letter_in_word(word, letter):
 # VMEvalKit Wrapper
 # ============================================
 
-def create_dataset(num_samples: int = None) -> Dict[str, Any]:
+def create_dataset(num_samples: int = 10, difficulties: Optional[Sequence[str]] = None) -> Dict[str, Any]:
     """
     Generate letter counting dataset using Tin's original generation logic.
     
     Args:
-        num_samples: Number of samples to generate (None = generate all variations)
+        num_samples: Number of samples to generate
+        difficulties: List of difficulty levels to generate.
+                     Options: ['easy', 'medium', 'hard']
+                     If None, generates all difficulties
         
     Returns:
         Dataset dictionary with 'pairs' key containing task data
@@ -97,91 +98,121 @@ def create_dataset(num_samples: int = None) -> Dict[str, Any]:
     # Create temp directory for images
     temp_dir = tempfile.mkdtemp()
     
-    # Tin's original words list
-    words = [
-        "STRAWBERRY", "MISSISSIPPI", "BANANA", "BOOKKEEPER", "COMMITTEE",
-        "COCONUT", "PIZZA", "COFFEE", "CHOCOLATE", "RESTAURANT",
-        "HIPPOPOTAMUS", "ALLIGATOR", "BUTTERFLY", "WATERMELON", "PINEAPPLE",
-        "GRASSHOPPER", "TENNESSEE", "TOMORROW", "NECESSARY", "PARALLEL",
-        "SUCCESSFUL", "ACCELERATION", "PROGRAMMING", "MASSACHUSETTS", "BUBBLE"
+    # Setup difficulties
+    diffs = list(difficulties) if difficulties else ["easy", "medium", "hard"]
+    
+    # Tin's original words list categorized by difficulty
+    # Easy: Short words (4-7 letters)
+    easy_words = ["BANANA", "COCONUT", "PIZZA", "COFFEE", "BUBBLE"]
+    
+    # Medium: Medium words (8-11 letters)
+    medium_words = [
+        "CHOCOLATE", "RESTAURANT", "ALLIGATOR", "BUTTERFLY", "WATERMELON",
+        "PINEAPPLE", "TENNESSEE", "TOMORROW", "NECESSARY", "COMMITTEE"
     ]
+    
+    # Hard: Long words (12+ letters)
+    hard_words = [
+        "STRAWBERRY", "MISSISSIPPI", "BOOKKEEPER", "HIPPOPOTAMUS", 
+        "GRASSHOPPER", "PARALLEL", "SUCCESSFUL", "ACCELERATION", 
+        "PROGRAMMING", "MASSACHUSETTS"
+    ]
+    
+    # Combine words based on requested difficulties
+    available_words = []
+    if "easy" in diffs:
+        available_words.extend(easy_words)
+    if "medium" in diffs:
+        available_words.extend(medium_words)
+    if "hard" in diffs:
+        available_words.extend(hard_words)
+    
+    # If no words available, return empty
+    if not available_words:
+        return {
+            "name": "letter_counting_tasks",
+            "pairs": [],
+            "source": "tin_tasks",
+            "total_samples": 0,
+            "difficulties": list(diffs)
+        }
     
     test_samples = []
     text_positions = ['top', 'bottom', 'middle']
-    sample_idx = 0
-    
-    dpis = [100, 150]
+    dpi = 150
 
-    # ============================================
-    # Tin's Original Generation Logic (UNCHANGED)
-    # ============================================
-    
-    for word in words:
+    # Generate num_samples by randomly selecting words
+    for sample_idx in range(num_samples):
+        # Randomly select a word
+        word = random.choice(available_words)
+        
         # Get unique letters in the word
         unique_letters = list(set(word.upper()))
         
-        # For each word, create samples for letters that appear at least once
-        for letter in unique_letters:
-            count = count_letter_in_word(word, letter)
-            
-            # Skip if letter doesn't appear (shouldn't happen) or only create samples for interesting cases
-            if count == 0:
-                continue
-            
-            for dpi in dpis:
-                text_pos = text_positions[sample_idx % len(text_positions)]
-                
-                # Generate first frame (without circles)
-                first_frame_id = draw_word(
-                    word, letter, dpi=dpi, add_circles=False,
-                    filename=f"{sample_idx + 1}_first",
-                    output_dir=temp_dir
-                )
-                
-                # Generate last frame (with circles and count)
-                last_frame_id = draw_word(
-                    word, letter, dpi=dpi, add_circles=True, 
-                    total_count=count, text_position=text_pos,
-                    filename=f"{sample_idx + 1}_last",
-                    output_dir=temp_dir
-                )
-                
-                # Tin's original data structure + minimal VMEvalKit fields
-                test_sample = {
-                    "sample_id": f"sample_{sample_idx + 1:04d}",
-                    "prompt": f"Create a video to show how to count the number of '{letter}' in {word}",
-                    "first_frame": f"{first_frame_id}.png",
-                    "last_frame": f"{last_frame_id}.png",
-                    "word": word,
-                    "target_letter": letter,
-                    "ground_truth_count": count,
-                    "text_position": text_pos,
-                    "metadata": {
-                        "word_length": len(word),
-                        "dpi": dpi
-                    },
-                    # VMEvalKit required fields
-                    "id": f"letter_counting_{sample_idx:04d}",
-                    "domain": "letter_counting",
-                    "first_image_path": os.path.join(temp_dir, f"{first_frame_id}.png"),
-                    "final_image_path": os.path.join(temp_dir, f"{last_frame_id}.png"),
-                }
-                test_samples.append(test_sample)
-                sample_idx += 1
-                
-                if num_samples and len(test_samples) >= num_samples:
-                    break
-            
-            if num_samples and len(test_samples) >= num_samples:
-                break
+        # Randomly select a letter from the word
+        letter = random.choice(unique_letters)
         
-        if num_samples and len(test_samples) >= num_samples:
-            break
+        # Count occurrences
+        count = count_letter_in_word(word, letter)
+        
+        # Determine difficulty based on word length
+        word_length = len(word)
+        if word_length <= 7:
+            difficulty = "easy"
+        elif word_length <= 11:
+            difficulty = "medium"
+        else:
+            difficulty = "hard"
+        
+        text_pos = text_positions[sample_idx % len(text_positions)]
+        
+        # Generate first frame (without circles)
+        first_frame_id = draw_word(
+            word, letter, dpi=dpi, add_circles=False,
+            filename=f"{sample_idx + 1}_first",
+            output_dir=temp_dir
+        )
+        
+        # Generate last frame (with circles and count)
+        last_frame_id = draw_word(
+            word, letter, dpi=dpi, add_circles=True, 
+            total_count=count, text_position=text_pos,
+            filename=f"{sample_idx + 1}_last",
+            output_dir=temp_dir
+        )
+        
+        # Tin's original data structure + minimal VMEvalKit fields
+        test_sample = {
+            "sample_id": f"sample_{sample_idx + 1:04d}",
+            "prompt": f"Create a video to show how to count the number of '{letter}' in {word}",
+            "first_frame": f"{first_frame_id}.png",
+            "last_frame": f"{last_frame_id}.png",
+            "word": word,
+            "target_letter": letter,
+            "ground_truth_count": count,
+            "text_position": text_pos,
+            "difficulty": difficulty,
+            "metadata": {
+                "word_length": len(word),
+                "dpi": dpi
+            },
+            # VMEvalKit required fields
+            "id": f"letter_counting_{sample_idx:04d}",
+            "domain": "letter_counting",
+            "first_image_path": os.path.join(temp_dir, f"{first_frame_id}.png"),
+            "final_image_path": os.path.join(temp_dir, f"{last_frame_id}.png"),
+        }
+        test_samples.append(test_sample)
 
     return {
         "name": "letter_counting_tasks",
         "pairs": test_samples,
         "source": "tin_tasks",
-        "total_samples": len(test_samples)
+        "total_samples": len(test_samples),
+        "difficulties": list(diffs)
     }
 
+
+if __name__ == "__main__":
+    dataset = create_dataset(num_samples=10, difficulties=['easy', 'medium', 'hard'])
+    print(dataset)
