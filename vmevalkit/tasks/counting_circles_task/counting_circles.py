@@ -7,7 +7,6 @@ All generation logic is preserved from Tin's original implementation.
 """
 
 import matplotlib
-matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.colors import hsv_to_rgb
 import numpy as np
