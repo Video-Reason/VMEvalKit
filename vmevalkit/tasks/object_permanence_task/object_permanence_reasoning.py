@@ -64,7 +64,7 @@ class ObjectGenerator:
     
     def __init__(self, canvas_size: Tuple[int, int] = (256, 256), 
                  min_size: int = 20, max_size: int = 40,
-                 min_spacing: int = 10):
+                 min_spacing: int = 25):
         """
         Initialize object generator.
         
@@ -116,15 +116,23 @@ class ObjectGenerator:
                 # Position: ensure objects are in area where occluder can pass over them
                 if ensure_occluder_path:
                     # Objects should be in middle-right area, ensuring they don't overlap with occluder
-                    # Occluder is on left side with width 50, so objects must start after x > 50
-                    # Objects should be in middle-right area (x from canvas_w/4 to 3*canvas_w/4)
-                    # This ensures occluder moving from left to right will pass over them
+                    # Occluder is on left side with width 50, starting at x=1 (with edge_margin)
+                    # Occluder right edge is at: 1 + 50 = 51
+                    # Objects must have sufficient distance from occluder right edge
                     margin = size // 2 + self.min_spacing
-                    occluder_max_x = 50  # Occluder width (must match renderer.occluder_width)
-                    x_min = max(margin, max(canvas_w // 4, occluder_max_x + 10))  # Ensure no overlap with occluder
+                    occluder_width = 50
+                    occluder_x_start = 1  # With edge_margin
+                    occluder_right_edge = occluder_x_start + occluder_width  # Right edge at x=51
+                    min_distance_from_occluder = 40  # Minimum distance from occluder right edge (increased for better spacing)
+                    x_min = max(margin, occluder_right_edge + min_distance_from_occluder)  # Ensure no overlap and sufficient distance
                     x_max = min(canvas_w - margin, 3 * canvas_w // 4)
                     x = self.rng.randint(x_min, x_max)
-                    y = self.rng.randint(margin, canvas_h - margin)
+                    # Keep objects in middle vertical region (avoid too high or too low)
+                    # Use middle 60% of canvas height (20% margin on top and bottom)
+                    vertical_margin_ratio = 0.2  # 20% margin on top and bottom
+                    y_min = int(canvas_h * vertical_margin_ratio) + margin
+                    y_max = int(canvas_h * (1 - vertical_margin_ratio)) - margin
+                    y = self.rng.randint(y_min, y_max)
                 else:
                     # Random position (with margin for object size)
                     margin = size // 2 + self.min_spacing
@@ -137,6 +145,7 @@ class ObjectGenerator:
                     dx = x - obj["x"]
                     dy = y - obj["y"]
                     distance = np.sqrt(dx*dx + dy*dy)
+                    # Increase minimum distance between objects for better spacing
                     min_distance = (size + obj["size"]) // 2 + self.min_spacing
                     
                     if distance < min_distance:
@@ -173,13 +182,26 @@ class ObjectGenerator:
             
             if not placed:
                 # If we can't place, use a grid-based fallback
+                # Ensure grid-based placement also respects occluder position
+                occluder_width = 50
+                occluder_x_start = 1  # With edge_margin
+                occluder_right_edge = occluder_x_start + occluder_width
+                min_distance_from_occluder = 30  # Minimum distance from occluder right edge (increased for better spacing)
+                safe_x_start = occluder_right_edge + min_distance_from_occluder
+                
                 grid_size = int(np.ceil(np.sqrt(num_objects)))
-                cell_w = canvas_w // (grid_size + 1)
-                cell_h = canvas_h // (grid_size + 1)
+                # Adjust grid to start after occluder
+                available_width = canvas_w - safe_x_start
+                cell_w = available_width // (grid_size + 1)
+                # Keep objects in middle vertical region (avoid too high or too low)
+                vertical_margin_ratio = 0.2  # 20% margin on top and bottom
+                available_height = int(canvas_h * (1 - 2 * vertical_margin_ratio))
+                cell_h = available_height // (grid_size + 1)
                 row = i // grid_size
                 col = i % grid_size
-                x = cell_w * (col + 1)
-                y = cell_h * (row + 1)
+                x = safe_x_start + cell_w * (col + 1)
+                y_base = int(canvas_h * vertical_margin_ratio)
+                y = y_base + cell_h * (row + 1)
                 
                 size = 30  # Fixed size for consistency
                 color = self.rng.choice(self.COLORS)
@@ -264,18 +286,21 @@ class SceneRenderer:
         
         # Occluder should be full height to ensure it passes over all objects regardless of their y position
         # This ensures that when moving horizontally from left to right, it will definitely occlude objects
-        occluder_y = 0
-        occluder_height = self.canvas_size[1]  # Full canvas height
+        # Position occluder with small margin to ensure all edges are fully visible and consistent
+        # Edge linewidth is 2, so we need margin of at least 1 to ensure edges aren't clipped
+        edge_margin = 1
+        occluder_x_adjusted = occluder_x + edge_margin  # Ensure left edge is fully visible
+        occluder_y = edge_margin  # Ensure bottom edge is fully visible
+        occluder_height = self.canvas_size[1] - 2 * edge_margin  # Adjust height to keep top edge visible
         
         # Ensure occluder is positioned so it doesn't occlude objects in first frame
-        # Objects are positioned starting from x > 50 (occluder width), so occluder at x=0 won't overlap
-        # But to be safe, we can position occluder slightly off-screen or ensure x position is negative
-        # For now, keep at x=0 but ensure objects are positioned after occluder width
+        # Objects are positioned starting from x > 50 (occluder width), so occluder won't overlap
         
         # Use darker gray for better opacity visibility
-        occluder = Rectangle((occluder_x, occluder_y), occluder_width, occluder_height,
+        # All edges (left, right, top, bottom) will have the same style and be fully visible
+        occluder = Rectangle((occluder_x_adjusted, occluder_y), occluder_width, occluder_height,
                            facecolor="#606060", edgecolor="#303030", linewidth=2, 
-                           alpha=1.0)  # Explicitly set alpha=1.0 for full opacity
+                           alpha=1.0, joinstyle='miter', capstyle='butt')  # Consistent edge style for all sides
         ax.add_patch(occluder)
         
         # Save figure
@@ -437,9 +462,8 @@ class ObjectPermanenceGenerator:
         
         # Occluder initial position (on left, not occluding objects)
         # Objects are positioned starting from x > 50 (after occluder width) to ensure no overlap
-        # Occluder starts at x=0 (left edge) with width 50, but objects are at x > 50, so no overlap
-        # Alternatively, we can position occluder slightly off-screen (x < 0) to be extra safe
-        occluder_x_start = -10  # Start slightly off-screen on the left to ensure no overlap with objects
+        # Occluder starts at x=0 (left edge) with width 50, so objects at x > 50 won't overlap
+        occluder_x_start = 0  # Start at left edge of canvas for consistent edges
         
         # Create image paths
         first_image_path = Path(self.temp_dir) / f"{task_id}_first.png"
