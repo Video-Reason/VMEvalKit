@@ -2,6 +2,35 @@
 
 This guide explains how to add reasoning tasks to VMEvalKit. Tasks can be **locally generated** or **downloaded from external datasets**.
 
+### What is a good task?
+
+A good task should be:
+- Can be scored automatically by a VLM
+- Can be scored by a human in two seconds
+- Have a single, unique solution, not multiple possible solutions
+
+
+
+### CheckList
+
+
+- [ ] modify the task_catalog.py to add the task.
+- [ ] create a dir under vmevalkit/tasks/your_task/ 
+- [ ] add the prompts.py to the your_task/
+- [ ] add the your_task.py to the your_task/
+- [ ] add the your_task.md to the your_task/
+
+
+```python
+you task need to have 
+- prompts.py     because we also need to score the task with prompt, and eaiser to check whether the prompt is correct.
+- your_task.py
+
+your_task.py need to have a create_dataset function. You could refer existing tasks for example.
+
+```
+
+
 ## 🎯 Core Concept
 
 Every task consists of three components:
@@ -170,6 +199,7 @@ def create_image(data: Any, output_path: Path):
 
 **5. Run**: `python vmevalkit/runner/create_dataset.py --pairs-per-domain 50`
 
+6. modify TASK_GUIDANCE in vmevalkit/eval/gpt4o_eval.py and vmevalkit/eval/internvl.py. Add the score prompt for the task.
 ---
 
 ## 📥 Path B: Downloaded Task
@@ -223,6 +253,7 @@ def create_dataset(num_samples: int = None) -> Dict[str, Any]:
 
 **4. Run**: `python vmevalkit/runner/create_dataset.py --pairs-per-domain all`
 
+5. modify TASK_GUIDANCE in vmevalkit/eval/gpt4o_eval.py and vmevalkit/eval/internvl.py. Add the score prompt for the task.
 ---
 
 ## 📚 Reference: Complete Examples
@@ -272,10 +303,8 @@ open data/questions/your_task_task/your_task_0000/first_frame.png
 | Issue | Solution |
 |-------|----------|
 | `ModuleNotFoundError` | Add to `DOMAIN_REGISTRY` in `TASK_CATALOG.py` |
-| Images not generated | `pip install matplotlib` |
 | Wrong format | Always use PNG, not JPEG |
 | Import errors | Check `__init__.py` exports `create_dataset` |
-| Images too large | Use `figsize=(6,6), dpi=150` |
 | Temp files accumulating | Use `tempfile.mkdtemp()` |
 
 ## 📚 Advanced Patterns
@@ -302,13 +331,15 @@ open data/questions/your_task_task/your_task_0000/first_frame.png
 - [ ] Module folder and `__init__.py` created
 - [ ] `create_dataset()` function implemented
 - [ ] Entry in `DOMAIN_REGISTRY`
-- [ ] PNG images: `first_frame.png`, `final_frame.png`
+- [ ] PNG images: `first_frame.png`
 - [ ] All required JSON fields present
 - [ ] Documentation (.md file)
+- [ ] modify TASK_GUIDANCE in vmevalkit/eval/gpt4o_eval.py and vmevalkit/eval/internvl.py. Add the score prompt for the task.
 
 **Locally Generated**: 
 - [ ] `PROMPTS.py` with templates
 - [ ] Image generation logic
+
 
 **Downloaded**: 
 - [ ] Download/conversion logic
@@ -330,4 +361,4 @@ Two paths for adding tasks:
 **Downloaded**: 
 1. Register → 2. Create module → 3. Implement download → 4. Convert format → 5. Test
 
-Both use the same `create_dataset()` interface. Mix and match as needed! 🚀
+Both use the same `create_dataset()` interface.
