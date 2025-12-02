@@ -26,8 +26,8 @@ from matplotlib.patches import Rectangle, Circle, RegularPolygon
 
 # Import prompts from centralized location
 from .PROMPTS import (
-    PROMPTS_EASY, PROMPTS_MEDIUM, PROMPTS_HARD,
-    DEFAULT_PROMPT_INDEX_EASY, DEFAULT_PROMPT_INDEX_MEDIUM, DEFAULT_PROMPT_INDEX_HARD
+    PROMPTS,
+    DEFAULT_PROMPT_INDEX
 )
 
 
@@ -417,16 +417,12 @@ class ObjectPermanenceGenerator:
         # Determine number of objects based on difficulty
         if difficulty == "easy":
             num_objects = 1
-            prompt_template = PROMPTS_EASY[DEFAULT_PROMPT_INDEX_EASY]
         elif difficulty == "medium":
             num_objects = 2
-            prompt_template = PROMPTS_MEDIUM[DEFAULT_PROMPT_INDEX_MEDIUM]
         elif difficulty == "hard":
             num_objects = 3
-            prompt_template = PROMPTS_HARD[DEFAULT_PROMPT_INDEX_HARD]
         else:
             num_objects = 1
-            prompt_template = PROMPTS_EASY[DEFAULT_PROMPT_INDEX_EASY]
         
         # Generate objects
         objects = self.object_generator.generate_objects(
@@ -435,8 +431,9 @@ class ObjectPermanenceGenerator:
             ensure_occluder_path=True
         )
         
-        # Generate prompt
-        prompt = self._format_prompt(prompt_template, objects, difficulty)
+        # Generate prompt using unified template
+        prompt_template = PROMPTS[DEFAULT_PROMPT_INDEX]
+        prompt = self._format_prompt(prompt_template, objects)
         
         # Occluder initial position (on left, not occluding objects)
         # Objects are positioned starting from x > 50 (after occluder width) to ensure no overlap
@@ -476,33 +473,56 @@ class ObjectPermanenceGenerator:
         
         return task_pair
     
-    def _format_prompt(self, template: str, objects: List[Dict[str, Any]], 
-                      difficulty: str) -> str:
-        """Format prompt template with object descriptions."""
-        if difficulty == "easy":
-            # Single object
+    def _format_prompt(self, template: str, objects: List[Dict[str, Any]]) -> str:
+        """Format prompt template with object descriptions. Adapts to any number of objects."""
+        num_objects = len(objects)
+        
+        # Helper function to get article (a/an) based on first letter
+        def get_article(word: str) -> str:
+            """Return 'a' or 'an' based on whether word starts with vowel sound."""
+            vowels = ['a', 'e', 'i', 'o', 'u']
+            return "an" if word[0].lower() in vowels else "a"
+        
+        # Build object descriptions
+        object_descriptions = []
+        for obj in objects:
+            article = get_article(obj['color'])
+            object_descriptions.append(f"{article} {obj['color']} {obj['shape']}")
+        
+        # Format objects description based on count
+        if num_objects == 1:
+            # Single object: "A red cube" or "An orange sphere"
             obj = objects[0]
-            return template.format(
-                color=obj["color"],
-                shape=obj["shape"]
-            )
-        elif difficulty == "medium":
-            # Two objects
-            obj1 = objects[0]
-            obj2 = objects[1]
-            obj1_desc = f"a {obj1['color']} {obj1['shape']}"
-            obj2_desc = f"a {obj2['color']} {obj2['shape']}"
-            return template.format(
-                object1_description=obj1_desc,
-                object2_description=obj2_desc
-            )
-        else:  # hard
-            # Multiple objects
-            object_descriptions = []
-            for obj in objects:
-                object_descriptions.append(f"a {obj['color']} {obj['shape']}")
-            object_list = ", ".join(object_descriptions)
-            return template.format(object_list=object_list)
+            article = get_article(obj['color'])
+            objects_description = f"{article.capitalize()} {obj['color']} {obj['shape']}"
+            are_or_is = "is"
+            objects_reference = "object"
+            objects_pronoun = "it"
+        elif num_objects == 2:
+            # Two objects: "A red cube and a blue sphere" or "An orange sphere and a red cube"
+            first_obj = objects[0]
+            first_article = get_article(first_obj['color'])
+            objects_description = f"{first_article.capitalize()} {first_obj['color']} {first_obj['shape']} and {object_descriptions[1]}"
+            are_or_is = "are"
+            objects_reference = "objects"
+            objects_pronoun = "them"
+        else:
+            # Multiple objects (3+): "A red cube, a blue sphere, and a green pyramid"
+            # Capitalize the first letter
+            first_obj = objects[0]
+            first_article = get_article(first_obj['color'])
+            first_desc = f"{first_article.capitalize()} {first_obj['color']} {first_obj['shape']}"
+            objects_description = first_desc + ", " + ", ".join(object_descriptions[1:-1]) + f", and {object_descriptions[-1]}"
+            are_or_is = "are"
+            objects_reference = "objects"
+            objects_pronoun = "them"
+        
+        return template.format(
+            objects_description=objects_description,
+            are_or_is=are_or_is,
+            objects_reference=objects_reference,
+            objects_pronoun=objects_pronoun
+        )
 
 
 def create_dataset(num_samples: int = 50, 
