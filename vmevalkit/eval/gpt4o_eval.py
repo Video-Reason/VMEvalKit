@@ -24,7 +24,6 @@ TASK_GUIDANCE = {
     "rotation_task": "Check if the final rotation angle and position match the expected result.",
     "raven_task": "Verify that the pattern completion in the final frame matches the expected pattern.",
     "sudoku_task": "Check if the numbers placed in the final frame match the expected solution.",
-    # Tin's tasks
     "counting_objects_task": "Check if the count shown in the final frame matches the ground_truth_count. Award 1 point if counts match, 0 otherwise.",
     "letter_counting_task": "Check if the count shown in the final frame matches the ground_truth_count for the target letter. Award 1 point if counts match, 0 otherwise.",
     "subway_pathfinding_task": "Check if the agent icon in the final frame is at the correct destination_station. Award 1 point if destination matches, 0 otherwise."
