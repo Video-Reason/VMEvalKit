@@ -563,20 +563,12 @@ class ControlPanelTaskGenerator:
         # Build optional notes
         num_lights_note = ""
         if num_lights == 2:
-            num_lights_note = "\nNote: Each control panel has exactly three positions, corresponding to the three possible colors."
-        
-        duplicate_color_note = ""
-        
-        inference_note = ""
-        if num_lights == 2:
-            inference_note = " Note that there are three positions corresponding to three colors."
+            num_lights_note = " Note that each control panel has exactly three positions, corresponding to the three possible colors."
         
         return template.format(
             num_lights=num_lights_desc,
             target_color=target_color,
-            num_lights_note=num_lights_note,
-            duplicate_color_note=duplicate_color_note,
-            inference_note=inference_note
+            num_lights_note=num_lights_note
         )
     
     def cleanup_temp_dir(self):
