@@ -22,10 +22,6 @@ import os
 import tempfile
 from typing import Dict, Any, Optional, Sequence
 
-# ============================================
-# Tin's Original Constants and Functions (UNCHANGED)
-# ============================================
-
 # assuming your canvas is 18x18
 
 valid_moves = {'A':[(0, -1), (-1, 0), (1, 0)],
@@ -253,10 +249,6 @@ def create_dataset(num_samples: int = 10, difficulties: Optional[Sequence[str]] 
     # Setup difficulties
     diffs = list(difficulties) if difficulties else ["easy", "medium", "hard"]
     
-    # ============================================
-    # Tin's Original Generation Logic (UNCHANGED)
-    # ============================================
-    
     # Generate subway routes (this generates 45 variations)
     images, node_to_label = generate_subway_routes()
     
@@ -346,7 +338,6 @@ def create_dataset(num_samples: int = 10, difficulties: Optional[Sequence[str]] 
         # Get the path color name
         path_color = rgba_to_color_name(color[focus_route_idx])
         
-        # Tin's original data structure + minimal VMEvalKit fields
         test_sample = {
             "sample_id": f"sample_{sample_idx + 1:04d}",
             "prompt": f"Create a video to show how an agent travels from station {source_station} to station {dest_station} by following the {path_color} path/line on the subway map.",
