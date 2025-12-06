@@ -38,7 +38,7 @@ For open-source models, we support HunyuanVideo, VideoCrafter, DynamiCrafter, St
 Install the required dependencies for open-source models:
 
 ```bash
-uv pip install transformers diffusers
+uv pip install transformers diffusers # for diffusers support
 ```
 
 
@@ -71,7 +71,6 @@ uv run examples/generate_videos.py --model wan-2.1-flf2v-720p --task chess maze
 - **Model ID**: `Wan-AI/Wan2.1-FLF2V-14B-720P-diffusers`
 - **Resolution**: Up to 720p (automatically resized based on input image aspect ratio)
 - **FPS**: 16 fps
-- **Type**: Image-to-video generation
 
 ## LTX-Video
 
