@@ -1,15 +1,8 @@
 """
 Task Catalog for VMEvalKit - Registry of all available reasoning tasks.
-
-Pure registry with no imports or logic - just task definitions organized by type.
-Uses string module paths for flexible dynamic loading.
 """
 
-# ========================================
-# TASK REGISTRY
-# ========================================
-
-DOMAIN_REGISTRY = {
+TASK_REGISTRY = {
     'videothinkbench': {
         'name': 'VideoThinkBench',
         'description': 'Complete VideoThinkBench dataset with all reasoning tasks (~4.1k tasks)',
@@ -94,10 +87,24 @@ DOMAIN_REGISTRY = {
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
+    'shape_sorter': {
+        'name': 'Shape Sorter',
+        'description': '2D shape matching under a fixed top-down camera',
+        'module': 'vmevalkit.tasks.shape_sorter_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
     'object_rearr': {
         'name': 'Object Rearrangement',
         'description': 'Spatial reasoning and object manipulation with spatial relations',
         'module': 'vmevalkit.tasks.object_rearr_task.object_rearr',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'sliding_puzzle': {
+        'name': 'Sliding Puzzle',
+        'description': 'Spatial reasoning and simple planning through near-complete sliding puzzles',
+        'module': 'vmevalkit.tasks.sliding_puzzle_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
@@ -115,6 +122,27 @@ DOMAIN_REGISTRY = {
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
+    'edit_distance': {
+        'name': 'Edit Distance',
+        'description': 'String edit distance calculation and numerical reasoning',
+        'module': 'vmevalkit.tasks.edit_distance_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'object_permanence': {
+        'name': 'Object Permanence',
+        'description': 'Object permanence reasoning - objects remain unchanged when occluder moves',
+        'module': 'vmevalkit.tasks.object_permanence_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'control_panel': {
+        'name': 'Control Panel',
+        'description': 'Control panel animation - lever position determines indicator light color',
+        'module': 'vmevalkit.tasks.control_panel_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
     'vpct': {
         'name': 'VPCT',
         'description': 'Visual Physics Comprehension Test - predict which bucket the ball will fall into',
@@ -125,10 +153,43 @@ DOMAIN_REGISTRY = {
         'hf_dataset': 'camelCase12/vpct-1',
         'hf_special_format': True  # Indicates file-based format, not standard dataset format
     },
+    'tetris': {
+        'name': 'Tetris',
+        'description': 'Tetris line-clearing reasoning tasks with animation instructions',
+        'module': 'vmevalkit.tasks.tetris_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
     'mirror_clock': {
         'name': 'Mirror Clock',
         'description': 'Spatial reasoning and mirror transformation using analog clock reflections',
         'module': 'vmevalkit.tasks.mirror_clock_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'counting_objects': {
+        'name': 'Counting Circles',
+        'description': 'Visual counting of Objects',
+        'module': 'vmevalkit.tasks.counting_objects_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'letter_counting': {
+        'name': 'Letter Counting',
+        'description': 'Count letter occurrences in words',
+        'module': 'vmevalkit.tasks.letter_counting_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'subway_pathfinding': {
+        'name': 'Subway Pathfinding',
+        'description': 'Navigate through subway networks from source to destination',
+        'module': 'vmevalkit.tasks.subway_pathfinding_task',
+    },
+    'light_sequence': {
+        'name': 'Light Sequence',
+        'description': 'Spatial reasoning and mathematical pattern recognition with light sequences',
+        'module': 'vmevalkit.tasks.light_sequence_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     }

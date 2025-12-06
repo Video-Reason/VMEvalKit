@@ -19,11 +19,18 @@ from openai import OpenAI
 logger = logging.getLogger(__name__)
 
 TASK_GUIDANCE = {
-    "chess_task": "Check if the final board position matches the expected position after the correct move.",
-    "maze_task": "Verify that the final frame shows a complete path from start to end that matches the expected solution.",
+    "object_permanence_task": "Verify that the object(s) remain unchanged in position, color, and shape, and the occluder is moved out of the frame.",
+    "chess_task": "Check if The black king is in checkmate.",
+    "maze_task": "Verify that the final frame at end of the maze is the red flag.",
     "rotation_task": "Check if the final rotation angle and position match the expected result.",
     "raven_task": "Verify that the pattern completion in the final frame matches the expected pattern.",
-    "sudoku_task": "Check if the numbers placed in the final frame match the expected solution."
+    "sudoku_task": "Check if the numbers placed in the final frame match the expected solution.",
+    "clock_task": "Check if the time is correct in the final frame.",
+    "counting_objects_task": "Check if the count shown in the final frame matches the ground_truth_count. Award 1 point if counts match, 0 otherwise.",
+    "letter_counting_task": "Check if the count shown in the final frame matches the ground_truth_count for the target letter. Award 1 point if counts match, 0 otherwise.",
+    "subway_pathfinding_task": "Check if the agent icon in the final frame is at the correct destination_station. Award 1 point if destination matches, 0 otherwise.",
+    "object_subtraction_task": "Verify that the specified object(s) have been correctly removed from the scene, while other objects remain unchanged and the scene remains complete.",
+    "light_sequence_task": "Verify that the correct lights are on and all other lights are off in the final frame."
 }
 
 

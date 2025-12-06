@@ -5,15 +5,16 @@
 
 
 [![results](https://img.shields.io/badge/Result-A42C2?style=for-the-badge&logo=googledisplayandvideo360&logoColor=white)](https://grow-ai-like-a-child.com/video-reason/)
-[![Paper](https://img.shields.io/badge/Paper-A42C25?style=for-the-badge&logo=arxiv&logoColor=white)](https://github.com/hokindeng/VMEvalKit/blob/features/clocks/paper/video-models-start-to-solve/Video_Model_Start_to_Solve.pdf) 
+[![Paper](https://img.shields.io/badge/Paper-A42C25?style=for-the-badge&logo=arxiv&logoColor=white)](paper/video-models-start-to-solve/Video_Model_Start_to_Solve.pdf) 
 [![Hugging Face](https://img.shields.io/badge/hf-fcd022?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/VideoReason)
 [![WeChat](https://img.shields.io/badge/WeChat-07C160?style=for-the-badge&logo=wechat&logoColor=white)](https://github.com/hokindeng/VMEvalKit/issues/132)
+[![Homepage](https://img.shields.io/badge/Homepage-07D100?style=for-the-badge&logo=googlehome&logoColor=white)](https://video-reason.github.io/)
 
 
 </div>
 
 
-A framework to score reasoning capabilities in video generation models at scale, through cognitive tasks. We **make it very convenient** to [**add models**](docs/ADDING_MODELS.md), [**add tasks**](docs/ADDING_TASKS.md), [**run inferences**](docs/INFERENCE.md), [**run scoring**](docs/SCORING.md), [**manage datasets**](docs/DATA_MANAGEMENT.md) and [**display results**](https://grow-ai-like-a-child.com/video-reason/). It's **permissively open-source**, and we welcome everyone to [**join**](https://join.slack.com/t/growingailikeachild/shared_invite/zt-309yqd0sl-W8xzOkdBPha1Jh5rnee78A) us and **build in public together**! 🚀 
+A framework for evaluating the reasoning abilities of video generation models at scale. It also serves as a data engine that produces reasoning datasets of varying tasks and difficulty levels, with easy customization. We **make it very convenient** to [**add models**](docs/ADDING_MODELS.md), [**add tasks**](docs/ADDING_TASKS.md), [**run inferences**](docs/INFERENCE.md), [**run scoring**](docs/SCORING.md), [**manage datasets**](docs/DATA_MANAGEMENT.md) and [**display results**](https://grow-ai-like-a-child.com/video-reason/). It's **permissively open-source**, and we welcome everyone to [**join**](https://join.slack.com/t/growingailikeachild/shared_invite/zt-309yqd0sl-W8xzOkdBPha1Jh5rnee78A) us and **build in public together**! 🚀 
 
 
 <p align="center">
@@ -36,15 +37,9 @@ VMEvalKit provides access to **9 local task generation engines(quickly increasin
 
 ### Local Task Generation Engines
 
-| Task | Description | Generation Method |
-|------|-------------|-------------------|
-| **Chess** | Strategic thinking & tactical patterns | Chess engine with mate-in-1 puzzles |
-| **Maze** | Path-finding & navigation | Procedural maze generation (Kruskal's algorithm) |
-| **Raven** | Abstract reasoning matrices | RAVEN dataset patterns |
-| **Rotation** | 3D mental rotation | Procedural 3D object generation |
-| **Sudoku** | Logical constraint satisfaction | Sudoku puzzle generator |
-| **Object Subtraction** | Selective object removal | Multi-level cognitive reasoning |
-| **Clock** | Time-based reasoning | Clock time increment |
+Tasks supported by VMEvalKit:
+
+Chess, Maze, Raven, Rotation, Sudoku, Object Subtraction, Clock, mirror clock. For more details, see [**Task Docs**](docs/tasks/README.md).
 
 ### Basic Idea
 
@@ -93,6 +88,8 @@ pip install -e .
 
 For open-source video generation and evaluator models, please refer to [**Open Source Models**](./examples/opensource/open_source.md) for detailed installation instructions.
 
+**Model Weights:** All model weights are stored in a centralized `weights/` directory. See [**Weights Structure**](docs/WEIGHTS_STRUCTURE.md) for details on weight management and migration.
+
 ## 🚀 Quick Start - End-to-End Example
 
 Here's a complete workflow from creating questions to scoring results:
@@ -107,22 +104,22 @@ python examples/create_questions.py --task chess maze --pairs-per-domain 5
 
 ### 2️⃣ Generate Videos
 ```bash
-# List available models
-python examples/generate_videos.py --list-models
-
-# set Luma key in .env file 
-# Run on specific model (e.g., Luma Ray 2)
-python examples/generate_videos.py --model luma-ray-2 --task chess maze
+# Run on specific model (e.g., stable video diffusion)
+python examples/generate_videos.py --model svd --task chess maze
 
 # Output: Creates data/outputs/pilot_experiment/ with generated videos
+# for close source model, need to set key in .env file
 ```
 
 ### 3️⃣ Score Results
 ```bash
-# Option A: Human scoring via web interface
+# open source VLM Automated scoring
+bash script/lmdeploy_server.sh
+
+# Human scoring via web interface
 python examples/score_videos.py human
 
-# Option B: Automated GPT-4O scoring
+# Automated GPT-4O scoring
 python examples/score_videos.py gpt4o
 ```
 
@@ -133,44 +130,12 @@ cd web && ./start.sh
 # Open http://localhost:5000 in your browser
 ```
 
-### 5️⃣ (Optional) Sync with Cloud
-```bash
-# AWS S3 (enterprise backup)
-python data/s3_sync.py --log
-```
-
 That's it! You now have:
 - ✅ Custom reasoning questions in `data/questions/`  
 - ✅ Generated videos in `data/outputs/`
 - ✅ Scoring results in `data/scorings/`
-- ✅ Interactive dashboard to explore everything
+- ✅ Interactive dashboard
 
-**Tips:**
-- Start small: `--pairs-per-domain 2` for quick testing
-- Use `--task-id chess_0001` to run specific questions  
-- Try different models: `--model openai-sora-2 veo-3.0-generate`
-
-## Examples
-
-Solving Chess
-
-![Chess Example](paper/video-models-start-to-solve/assets/chess_example.jpg)
-
-Solving Maze
-
-![Maze Example](paper/video-models-start-to-solve/assets/maze_example.jpg)
-
-Mental Rotation
-
-![Rotation Example](paper/video-models-start-to-solve/assets/rotation_example.jpg)
-
-Raven's Matrices
-
-![Raven Example](paper/video-models-start-to-solve/assets/raven_example.jpg)
-
-Sudoku Solving
-
-![Sudoku Example](paper/video-models-start-to-solve/assets/sudoku_example.jpg)
 
 ## Tasks
 
@@ -198,173 +163,22 @@ Each Task Pair consists of three core components:
 
 With our VMEvalKit, you can easily create tasks with final text answer by simply adding a `goal.txt` file to the task folder, so you could adapt your VQA datasets to video reasoning tasks.
 
+For more details, see [**Task Docs**](docs/tasks/README.md).
+
 ## Inference Architecture
 
-### 🚀 Quick Start
-
-```python
-from vmevalkit.runner.inference import InferenceRunner
-
-# Initialize runner - creates structured output directories
-runner = InferenceRunner(output_dir="data/outputs")
-
-# Generate video showing reasoning process
-result = runner.run(
-    model_name="luma-ray-2",
-    image_path="data/questions/maze_task/maze_0000/first_frame.png",
-    text_prompt="Navigate the green dot through the maze corridors to reach the red flag",
-    question_data={"id": "maze_0000", "domain": "maze"}  # Optional metadata
-)
-
-# Each inference creates a self-contained output folder:
-print(f"📁 Output folder: {result['inference_dir']}")
-# Contains:
-# ├── video/generated_video.mp4    # The generated video
-# ├── question/                    # Input data archive
-# │   ├── first_frame.png         # Input image
-# │   ├── prompt.txt              # Text prompt
-# │   └── question_metadata.json  # Task metadata
-# └── metadata.json               # Complete inference record
-```
-
-### 🏗️ System Design
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                               InferenceRunner                               │
-│        Top-level orchestrator: manages workflow, batching, and output       │
-└───────────────────────┬─────────────────────────────────────────────────────┘
-                        │      Dynamic Model Loading (importlib)              
-                        ▼                                                    
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              MODEL_CATALOG                                  │
-│  Unified model registry:                                                    │
-│    - Lists all available models (both API and open-source)                  │
-│    - Records provider family, wrapper paths, model meta-info                │
-│    - No imports of implementations (pure config)                            │
-└───────────────────────┬─────────────────────────────────────────────────────┘
-                        │      importlib.import_module() dynamically loads   
-                        ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                       Model Implementations (Two Flavors)                   │
-│ ┌────────────────────────────┬────────────────────────────────────────────┐ │
-│ │          Commercial Models             │      Open-Source Models        │ │
-│ │       (Closed Source Services)         │    (Local Implementations)     │ │
-│ ├────────────────────────────┼────────────────────────────────────────────┤ │
-│ │ LumaWrapper  +  LumaService           │ LTXVideoWrapper  +  LTXService  │ │
-│ │ VeoWrapper   +  VeoService            │ HunyuanWrapper   +  HunyuanSvc  │ │
-│ │ RunwayWrapper+  RunwayService         │ VideoCrafterWrapper+VCService   │ │
-│ │ ...                                   │ DynamiCrafterWrapper+DynService │ │
-│ └────────────────────────────┴────────────────────────────────────────────┘ │
-│   - Each Wrapper implements unified VMEvalKit interface                     │
-│   - API Services handle endpoints, retries, S3-upload (when needed)         │
-│   - Open-source backends directly invoke local model code                   │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
 See **[Inference Guide](docs/INFERENCE.md)** for details. 
 
 ## Scoring Pipeline
-
-### Example Usage
-
-```bash
-# Create questions for specific domains
-python examples/create_questions.py --task chess maze --pairs-per-domain 10
-
-# Generate videos with selected models  
-python examples/generate_videos.py --model luma-ray-2 veo-3.0-generate --task chess maze
-
-# Score results with gpt4o
-python examples/score_videos.py gpt4o
-# Score results manually
-python -m vmevalkit.runner.score human \
-  --experiment pilot_experiment \
-  --annotator "John Doe" \
-  --port 7860 --share
-  --output-dir data/scorings \ 
-```
-
-You could also use Web interface directly:
-
-```python
-from vmevalkit.eval import HumanScorer
-
-scorer = HumanScorer(experiment_name="pilot_experiment")
-scorer.launch_interface(share=True, port=7860)
-```
 
 See **[Scoring Guide](docs/SCORING.md)** for details.
 
 ## Dataset Management
 
-### Dataset Structure
-
-VMEvalKit uses a hierarchical structure for organizing all data:
-
-```
-data/
-├── questions/                       # Task datasets
-│   ├── vmeval_dataset.json         # Master dataset manifest
-│   ├── chess_task/                 # Chess puzzles (mate-in-1 scenarios)
-│   │   └── chess_0000/
-│   │       ├── first_frame.png     # Initial chess position
-│   │       ├── final_frame.png     # Solution position
-│   │       ├── prompt.txt          # Move instructions
-│   │       └── question_metadata.json  # Task metadata
-│   ├── maze_task/                  # Maze solving challenges
-│   ├── raven_task/                 # Raven's progressive matrices
-│   ├── rotation_task/              # 3D mental rotation
-│   └── sudoku_task/                # Sudoku puzzles
-│
-├── outputs/                         # Model inference results
-│   └── pilot_experiment/           # Experiment name
-│       └── <model_name>/           # e.g., openai-sora-2, luma-ray-2
-│           └── <domain>_task/      # e.g., chess_task
-│               └── <task_id>/      # e.g., chess_0000
-│                   └── <run_id>/   # Timestamped run folder
-│                       ├── video/
-│                       │   └── model_output.mp4
-│                       ├── question/
-│                       │   ├── prompt.txt
-│                       │   └── first_frame.png
-│                       └── metadata.json
-│
-├── scorings/                        # Scoring results
-│   └── pilot_experiment/
-│       └── <model_name>/
-│           └── <domain>_task/
-│               └── <task_id>/
-│                   ├── human-score.json     # Human scoring scores
-│                   └── GPT4OScorer.json     # GPT-4O scoring scores
-```
-
-### Synchronization
-
-Upload your dataset to S3:
-
-```bash
-# AWS S3
-python data/s3_sync.py --log  # Upload with version logging
-python data/s3_sync.py --date 20250115  # Upload with specific timestamp
-```
-
 See **[Data Management](docs/DATA_MANAGEMENT.md)** for details. 
 
 ## Display Results
 
-You could quickly host your results on an interactive dashboard at: http://localhost:5000
-
-```bash
-# Navigate to web directory
-cd web
-
-# Option 1: Use startup script (recommended)
-./start.sh
-
-# Option 2: Manual startup
-source ../venv/bin/activate
-python app.py
-```
 See **[Web Dashboard](docs/WEB_DASHBOARD.md)** for details.
 
 ## Add Models or Tasks
@@ -418,8 +232,6 @@ class MyTask(BaseTask):
         }
 ```
 
-VMEvalKit handles all the dataset organization, inference pipelines, and evaluation infrastructure automatically.
-
 See **[Adding Tasks Guide](docs/ADDING_TASKS.md)** for details.
 
 ## Invitation to Collaborate 🤝
@@ -445,6 +257,7 @@ VMEvalKit is meant to be a permissively open-source **shared playground** for ev
 - **[Adding Models](docs/ADDING_MODELS.md)** - How to add new video generation models
 - **[Adding Tasks](docs/ADDING_TASKS.md)** - How to create new reasoning tasks
 - **[Web Dashboard](docs/WEB_DASHBOARD.md)** - Interactive results visualization
+- **[Weights Structure](docs/WEIGHTS_STRUCTURE.md)** - Model weights management and centralized storage
 
 ## Research
 

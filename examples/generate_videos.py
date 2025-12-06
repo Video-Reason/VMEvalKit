@@ -37,7 +37,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from vmevalkit.runner.inference import  InferenceRunner
 from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS, get_model_family
-from vmevalkit.runner.TASK_CATALOG import DOMAIN_REGISTRY
+from vmevalkit.runner.TASK_CATALOG import TASK_REGISTRY
 
 
 # ========================================
@@ -61,7 +61,7 @@ QUESTIONS_DIR = Path("data/questions")
 OUTPUT_DIR = Path("data/outputs/pilot_experiment")
 
 # Expected domains (dynamically loaded from TASK_CATALOG)
-EXPECTED_DOMAINS = sorted(list(DOMAIN_REGISTRY.keys()))
+EXPECTED_DOMAINS = sorted(list(TASK_REGISTRY.keys()))
 
 # ========================================
 # FOLDER-BASED TASK DISCOVERY
@@ -390,14 +390,25 @@ def run_pilot_experiment(
                 
                 print(f"    [{job_counter}/{total_jobs}] Processing: {task_id}")
                 
-                # Check if inference folder already exists
+                # Check if inference folder already exists WITH actual video file
                 # Check inside mirrored domain/task folder for existing runs
                 run_id_pattern = f"{model_name}_{task_id}_*"
                 domain_dir_name = f"{domain}_task"
                 task_folder = model_output_dir / domain_dir_name / task_id
                 existing_dirs = list(task_folder.glob(run_id_pattern))
                 
-                if skip_existing and existing_dirs:
+                # Verify the run folder actually contains a video file
+                has_valid_output = False
+                if existing_dirs:
+                    for run_dir in existing_dirs:
+                        video_dir = run_dir / "video"
+                        if video_dir.exists():
+                            video_files = list(video_dir.glob("*.mp4")) + list(video_dir.glob("*.webm"))
+                            if video_files:
+                                has_valid_output = True
+                                break
+                
+                if skip_existing and has_valid_output:
                     statistics["skipped"] += 1
                     statistics["by_model"][model_name]["skipped"] += 1
                     statistics["by_domain"][domain]["skipped"] += 1
@@ -504,9 +515,9 @@ Examples:
     parser.add_argument(
         "--task",
         nargs="+",
-        choices=sorted(list(DOMAIN_REGISTRY.keys())),
+        choices=sorted(list(TASK_REGISTRY.keys())),
         default=None,
-        help=f"Specific task domain(s) to run. Available: {', '.join(sorted(list(DOMAIN_REGISTRY.keys())))}. If not specified, runs all domains."
+        help=f"Specific task domain(s) to run. Available: {', '.join(sorted(list(TASK_REGISTRY.keys())))}. If not specified, runs all domains."
     )
     
     parser.add_argument(
