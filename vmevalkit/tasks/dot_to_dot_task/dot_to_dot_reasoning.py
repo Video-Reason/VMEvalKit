@@ -207,12 +207,12 @@ class DotToDotGenerator:
         }
 
     def _dots_for_difficulty(self, difficulty: str) -> int:
-        """Determine number of dots based on difficulty."""
+        """Determine number of dots based on difficulty. Maximum 20 dots."""
         if difficulty == "easy":
             return self.rng.randint(5, 10)  # Simple: 5-10 dots
         if difficulty == "hard":
-            return self.rng.randint(40, 60)
-        return self.rng.randint(15, 30)  # Medium: 15-30 dots
+            return self.rng.randint(15, 20)  # Hard: 15-20 dots (max 20)
+        return self.rng.randint(10, 15)  # Medium: 10-15 dots
 
     def _create_dot_pattern(self, num_dots: int) -> List[DotSpec]:
         """Generate a pattern of dots forming a recognizable shape."""
@@ -247,13 +247,21 @@ class DotToDotGenerator:
         return dots
     
     def _ensure_unique_positions(self, dots: List[DotSpec]) -> List[DotSpec]:
-        """Ensure each dot has a unique position with minimum distance."""
+        """Ensure each dot has a unique position with minimum distance and within canvas bounds."""
         min_distance = DOT_RADIUS * 3  # Minimum distance between dot centers
+        w, h = self.canvas
+        padding = DOT_RADIUS + 5  # Padding from canvas edges
+        
         unique_dots: List[DotSpec] = []
         used_positions: List[Point] = []
         
         for dot in dots:
             x, y = dot.x, dot.y
+            
+            # Clamp initial position to canvas bounds
+            x = max(padding, min(w - padding, x))
+            y = max(padding, min(h - padding, y))
+            
             # Check if this position is too close to existing dots
             too_close = False
             for used_x, used_y in used_positions:
@@ -263,18 +271,22 @@ class DotToDotGenerator:
                     break
             
             if not too_close:
-                unique_dots.append(dot)
+                unique_dots.append(DotSpec(number=dot.number, position=(x, y)))
                 used_positions.append((x, y))
             else:
                 # If too close, try to adjust position slightly
                 adjusted = False
-                for attempt in range(10):
-                    angle = 2 * math.pi * attempt / 10
+                for attempt in range(20):  # More attempts
+                    angle = 2 * math.pi * attempt / 20
                     offset = min_distance * 1.2
                     new_x = x + offset * math.cos(angle)
                     new_y = y + offset * math.sin(angle)
                     
-                    # Check if new position is valid
+                    # Clamp to canvas bounds
+                    new_x = max(padding, min(w - padding, new_x))
+                    new_y = max(padding, min(h - padding, new_y))
+                    
+                    # Check if new position is valid (not too close to others)
                     valid = True
                     for used_x, used_y in used_positions:
                         distance = math.sqrt((new_x - used_x) ** 2 + (new_y - used_y) ** 2)
@@ -291,8 +303,11 @@ class DotToDotGenerator:
                         break
                 
                 if not adjusted:
-                    # If can't adjust, skip this dot (shouldn't happen often)
-                    continue
+                    # If can't adjust, use original position (clamped to bounds)
+                    # This should rarely happen with proper pattern generation
+                    clamped_dot = DotSpec(number=dot.number, position=(x, y))
+                    unique_dots.append(clamped_dot)
+                    used_positions.append((x, y))
         
         # Re-number dots to ensure sequential numbering
         for i, dot in enumerate(unique_dots):
