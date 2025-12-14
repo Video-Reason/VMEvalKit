@@ -352,19 +352,21 @@ HUNYUAN_VIDEO_MODELS = {
     }
 }
 
-# SGLang Models (Experimental - supports Hunyuan, Wan-series, FastWan)
+# SGLang Models (supports Hunyuan, Wan-series, FastWan)
 # Note: SGLang Issue #12850 has been fixed (closed on 2025-11-09).
-# This implementation is ready for testing. Docker is recommended for some models but local installation is also supported.
+# Installation: pip install -e "python[diffusion]" (from SGLang source)
+# Performance Tip: Use persistent server mode for better performance (see docs/SGLANG_SETUP.md)
+# Usage: Start server with `sglang serve --model-path <model>`, then set use_persistent_server=True
 SGLANG_MODELS = {
     "sglang-hunyuan-video-i2v": {
         "wrapper_module": "vmevalkit.models.sglang_inference",
         "wrapper_class": "SGLangWrapper",
         "service_class": "SGLangService",
         "model": "hunyuan-video-i2v",
-        "description": "HunyuanVideo-I2V via SGLang (Experimental - Docker recommended, local installation supported, Issue #12850 fixed)",
+        "description": "HunyuanVideo-I2V via SGLang (persistent server mode recommended for performance)",
         "family": "SGLang",
         "args": {
-            "use_docker": True
+            "use_persistent_server": True
         }
     },
     "sglang-wan-2.1": {
@@ -372,10 +374,10 @@ SGLANG_MODELS = {
         "wrapper_class": "SGLangWrapper",
         "service_class": "SGLangService",
         "model": "wan-2.1",
-        "description": "WAN 2.1 via SGLang (Experimental - Docker recommended, local installation supported, Issue #12850 fixed)",
+        "description": "WAN 2.1 via SGLang (persistent server mode recommended for performance)",
         "family": "SGLang",
         "args": {
-            "use_docker": True
+            "use_persistent_server": True
         }
     },
     "sglang-wan-2.2": {
@@ -383,10 +385,10 @@ SGLANG_MODELS = {
         "wrapper_class": "SGLangWrapper",
         "service_class": "SGLangService",
         "model": "wan-2.2",
-        "description": "WAN 2.2 via SGLang (Experimental - Docker recommended, local installation supported, Issue #12850 fixed)",
+        "description": "WAN 2.2 via SGLang (persistent server mode recommended for performance)",
         "family": "SGLang",
         "args": {
-            "use_docker": True
+            "use_persistent_server": True
         }
     },
     "sglang-fastwan": {
@@ -394,10 +396,10 @@ SGLANG_MODELS = {
         "wrapper_class": "SGLangWrapper",
         "service_class": "SGLangService",
         "model": "fastwan",
-        "description": "FastWan2.1-T2V-1.3B via SGLang (480P, 1.3B params, by Hao AI Lab @ UCSD, Docker recommended, local installation supported, Issue #12850 fixed)",
+        "description": "FastWan2.1-T2V-1.3B via SGLang (480P, 1.3B params, by Hao AI Lab @ UCSD)",
         "family": "SGLang",
         "args": {
-            "use_docker": True
+            "use_persistent_server": True
         }
     },
     "sglang-fastwan-1.3b": {
@@ -405,10 +407,10 @@ SGLANG_MODELS = {
         "wrapper_class": "SGLangWrapper",
         "service_class": "SGLangService",
         "model": "fastwan-1.3b",
-        "description": "FastWan2.1-T2V-1.3B via SGLang (480P, 1.3B params, by Hao AI Lab @ UCSD, Docker recommended, local installation supported, Issue #12850 fixed)",
+        "description": "FastWan2.1-T2V-1.3B via SGLang (480P, 1.3B params, by Hao AI Lab @ UCSD)",
         "family": "SGLang",
         "args": {
-            "use_docker": True
+            "use_persistent_server": True
         }
     },
     "sglang-fastwan-14b": {
@@ -416,10 +418,10 @@ SGLANG_MODELS = {
         "wrapper_class": "SGLangWrapper",
         "service_class": "SGLangService",
         "model": "fastwan-14b",
-        "description": "FastWan2.1-T2V-14B via SGLang (720P, 14B params, preview, by Hao AI Lab @ UCSD, Docker recommended, local installation supported, Issue #12850 fixed)",
+        "description": "FastWan2.1-T2V-14B via SGLang (720P, 14B params, preview, by Hao AI Lab @ UCSD)",
         "family": "SGLang",
         "args": {
-            "use_docker": True
+            "use_persistent_server": True
         }
     },
     "sglang-fastwan-2.2-5b": {
@@ -427,10 +429,10 @@ SGLANG_MODELS = {
         "wrapper_class": "SGLangWrapper",
         "service_class": "SGLangService",
         "model": "fastwan-2.2-5b",
-        "description": "FastWan2.2-TI2V-5B-FullAttn via SGLang (720P, 5B params, by Hao AI Lab @ UCSD, Docker recommended, local installation supported, Issue #12850 fixed)",
+        "description": "FastWan2.2-TI2V-5B-FullAttn via SGLang (720P, 5B params, by Hao AI Lab @ UCSD)",
         "family": "SGLang",
         "args": {
-            "use_docker": True
+            "use_persistent_server": True
         }
     }
 }

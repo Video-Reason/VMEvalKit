@@ -7,6 +7,13 @@ SGLang provides support for video models that are not available in diffusers.
 Note: SGLang Issue #12850 has been fixed (closed on 2025-11-09). 
 This implementation is ready for testing. Docker is recommended for reproducibility, but local GPU installation is also supported.
 
+Usage Modes:
+1. Persistent Server Mode (Recommended): Start server with `sglang serve`, then use API calls
+   - Avoids reloading model on every inference
+   - Better performance for multiple requests
+2. Direct Mode: Load model for each inference
+   - Simpler but slower for multiple requests
+
 Reference:
 - https://lmsys.org/blog/2025-11-07-sglang-diffusion/
 - https://github.com/sgl-project/sglang/blob/main/python/sglang/multimodal_gen/docs/cli.md
@@ -19,6 +26,7 @@ from typing import Dict, Any, Optional, Union
 from .base import ModelWrapper
 import time
 import logging
+import requests
 
 logger = logging.getLogger(__name__)
 import sglang
@@ -56,6 +64,7 @@ class SGLangService:
         output_dir: str = "./data/outputs",
         sglang_server_url: Optional[str] = None,
         use_docker: bool = True,
+        use_persistent_server: bool = True,
         **kwargs
     ):
         """
@@ -64,17 +73,22 @@ class SGLangService:
         Args:
             model_id: Model identifier (hunyuan-video-i2v, wan-2.1, wan-2.2, fastwan)
             output_dir: Directory to save generated videos
-            sglang_server_url: Optional SGLang server URL (if running as service)
+            sglang_server_url: Optional SGLang server URL (if running as service).
+                              If None and use_persistent_server=True, will auto-detect or use http://localhost:30000
             use_docker: Whether to run inference inside Docker. 
                         Default is True (recommended for reproducibility), but can be set to False 
                         for local GPU installations since SGLang officially supports non-Docker usage.
+            use_persistent_server: If True, will try to use/connect to a persistent SGLang server.
+                                  This avoids reloading the model on every inference (recommended).
+                                  If False, will load model for each inference.
             **kwargs: Additional parameters
         """
         self.model_id = model_id
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True, parents=True)
-        self.sglang_server_url = sglang_server_url
+        self.sglang_server_url = sglang_server_url or "http://localhost:30000"
         self.use_docker = use_docker
+        self.use_persistent_server = use_persistent_server
         self.kwargs = kwargs
         
         # Map model_id to SGLang model path
@@ -85,6 +99,20 @@ class SGLangService:
         
         # Check if SGLang is available - raise error early if not installed
         self._check_sglang_availability()
+        
+        # Check if persistent server is available
+        if self.use_persistent_server:
+            self.server_available = self._check_server_available()
+            if self.server_available:
+                logger.info(f"SGLang server detected at {self.sglang_server_url}")
+            else:
+                logger.warning(
+                    f"Persistent server mode enabled but no server found at {self.sglang_server_url}. "
+                    f"Will fall back to direct model loading. "
+                    f"To use server mode, start server with: sglang serve --model-path {self.sglang_model}"
+                )
+        else:
+            self.server_available = False
     
     def _check_sglang_availability(self) -> None:
         """
@@ -101,9 +129,9 @@ class SGLangService:
         except ImportError as e:
             raise ImportError(
                 "SGLang is required but not installed. "
-                "Install with: pip install \"sglang[all]\" (recommended)\n"
-                "Optional: uv pip install \"sglang[all]\" can also be used.\n"
-                "Note: Docker is recommended for consistent environments, but local installation is officially supported by SGLang. "
+                "Install from source with: pip install -e \"python[diffusion]\" (recommended)\n"
+                "Alternative: Clone SGLang repo and run: cd python && pip install -e \".[diffusion]\"\n"
+                "Note: pip install \"sglang[all]\" may not work for diffusion models.\n"
                 "See https://github.com/sgl-project/sglang for installation instructions."
             ) from e
     
@@ -120,6 +148,147 @@ class SGLangService:
         except (subprocess.TimeoutExpired, FileNotFoundError):
             return False
     
+    def _check_server_available(self) -> bool:
+        """
+        Check if SGLang server is running and available.
+        
+        Returns:
+            True if server is reachable, False otherwise
+        """
+        try:
+            response = requests.get(f"{self.sglang_server_url}/health", timeout=5)
+            return response.status_code == 200
+        except (requests.RequestException, Exception):
+            return False
+    
+    def _call_server_api(
+        self,
+        image_path: Union[str, Path],
+        text_prompt: str,
+        height: int = 720,
+        width: int = 1280,
+        num_frames: int = 25,
+        seed: Optional[int] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Call SGLang server API for video generation.
+        
+        This method uses a persistent server to avoid reloading the model on every inference.
+        Server should be started with: sglang serve --model-path <model>
+        
+        Args:
+            image_path: Path to input image
+            text_prompt: Text prompt for video generation
+            height: Video height in pixels
+            width: Video width in pixels
+            num_frames: Number of frames to generate
+            seed: Random seed for reproducibility
+            **kwargs: Additional parameters
+            
+        Returns:
+            Dictionary with inference results and metadata
+        """
+        start_time = time.time()
+        timestamp = int(time.time())
+        
+        # Prepare request payload
+        payload = {
+            "prompt": text_prompt,
+            "image_path": str(image_path),
+            "height": height,
+            "width": width,
+            "num_frames": num_frames,
+        }
+        
+        if seed is not None:
+            payload["seed"] = seed
+        
+        # Add any additional kwargs
+        payload.update(kwargs)
+        
+        try:
+            # Call API endpoint
+            response = requests.post(
+                f"{self.sglang_server_url}/generate",
+                json=payload,
+                timeout=600  # 10 minute timeout for video generation
+            )
+            
+            if response.status_code == 200:
+                result_data = response.json()
+                video_path = result_data.get("video_path")
+                
+                if video_path and Path(video_path).exists():
+                    return {
+                        "success": True,
+                        "video_path": str(video_path),
+                        "error": None,
+                        "duration_seconds": time.time() - start_time,
+                        "generation_id": f"sglang_{timestamp}",
+                        "model": self.model_id,
+                        "status": "success",
+                        "metadata": {
+                            "text_prompt": text_prompt,
+                            "image_path": str(image_path),
+                            "sglang_model": self.sglang_model,
+                            "height": height,
+                            "width": width,
+                            "num_frames": num_frames,
+                            "seed": seed,
+                            "method": "server_api",
+                        }
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "video_path": None,
+                        "error": f"Server returned success but video file not found: {video_path}",
+                        "duration_seconds": time.time() - start_time,
+                        "generation_id": f"sglang_error_{timestamp}",
+                        "model": self.model_id,
+                        "status": "failed",
+                        "metadata": {
+                            "text_prompt": text_prompt,
+                            "image_path": str(image_path),
+                            "method": "server_api",
+                        }
+                    }
+            else:
+                error_msg = response.text or f"HTTP {response.status_code}"
+                return {
+                    "success": False,
+                    "video_path": None,
+                    "error": f"Server API call failed: {error_msg}",
+                    "duration_seconds": time.time() - start_time,
+                    "generation_id": f"sglang_error_{timestamp}",
+                    "model": self.model_id,
+                    "status": "failed",
+                    "metadata": {
+                        "text_prompt": text_prompt,
+                        "image_path": str(image_path),
+                        "method": "server_api",
+                        "http_status": response.status_code,
+                    }
+                }
+                
+        except requests.RequestException as e:
+            return {
+                "success": False,
+                "video_path": None,
+                "error": f"Server API request failed: {str(e)}",
+                "duration_seconds": time.time() - start_time,
+                "generation_id": f"sglang_error_{timestamp}",
+                "model": self.model_id,
+                "status": "failed",
+                "metadata": {
+                    "text_prompt": text_prompt,
+                    "image_path": str(image_path),
+                    "method": "server_api",
+                    "exception": str(e),
+                }
+            }
+    
     def _run_sglang_inference(
         self,
         image_path: Union[str, Path],
@@ -133,7 +302,11 @@ class SGLangService:
         """
         Run SGLang inference for video generation.
         
-        Attempts to use SGLang CLI or Python API to generate video.
+        Priority order:
+        1. If use_persistent_server=True and server available, use server API (recommended)
+        2. Otherwise, try SGLang CLI
+        3. Finally, fall back to Python API (loads model each time)
+        
         Note: SGLang Issue #12850 has been fixed (closed on 2025-11-09).
         This implementation is ready for testing.
         
@@ -155,6 +328,24 @@ class SGLangService:
         timestamp = int(time.time())
         output_filename = f"sglang_{self.model_id}_{timestamp}.mp4"
         output_path = self.output_dir / output_filename
+        
+        # Priority 1: Try server API if available (recommended - avoids reloading model)
+        if self.use_persistent_server and self.server_available:
+            logger.info("Using persistent SGLang server (recommended for performance)")
+            result = self._call_server_api(
+                image_path=image_path,
+                text_prompt=text_prompt,
+                height=height,
+                width=width,
+                num_frames=num_frames,
+                seed=seed,
+                **kwargs
+            )
+            if result["success"]:
+                return result
+            else:
+                logger.warning(f"Server API failed: {result.get('error')}. Falling back to direct loading.")
+                # Continue to try other methods
         
         # Check Docker if required
         if self.use_docker and not self._check_docker_available():
@@ -191,12 +382,18 @@ class SGLangService:
                 }
             }
         
-        # Use SGLang (CLI or Python API)
+        # Priority 2 & 3: Use direct model loading (CLI or Python API)
         # Note: ImportError is already checked in __init__, so imports are safe here
+        # Warning: These methods reload the model on every inference
             
         logger.info(
             "SGLang inference: Issue #12850 has been fixed (closed on 2025-11-09). "
             "Implementation is ready for testing."
+        )
+        logger.warning(
+            "Using direct model loading (model will be loaded for each inference). "
+            "For better performance, start a persistent server with: "
+            f"sglang serve --model-path {self.sglang_model}"
         )
         
         try:
@@ -531,6 +728,11 @@ class SGLangWrapper(ModelWrapper):
     Wrapper for SGLangService to match VMEvalKit's standard interface.
     
     Supports models: Hunyuan, Wan-series, FastWan via SGLang.
+    
+    Performance Tip:
+    For better performance with multiple requests, start a persistent SGLang server:
+        sglang serve --model-path <model> --num-gpus 4 --ulysses-degree=2 --ring-degree=2
+    Then set use_persistent_server=True (default) to use the server API.
     """
     
     def __init__(
@@ -545,7 +747,11 @@ class SGLangWrapper(ModelWrapper):
         Args:
             model: Model identifier (hunyuan-video-i2v, wan-2.1, wan-2.2, fastwan)
             output_dir: Directory to save generated videos
-            **kwargs: Additional parameters (sglang_server_url, use_docker, etc.)
+            **kwargs: Additional parameters:
+                - sglang_server_url: Server URL (default: http://localhost:30000)
+                - use_persistent_server: Use server API if available (default: True, recommended)
+                - use_docker: Use Docker for inference (default: True)
+                - num_gpus: Number of GPUs to use (for direct mode)
         """
         self.model = model
         self.output_dir = Path(output_dir)
