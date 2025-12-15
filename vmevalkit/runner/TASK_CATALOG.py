@@ -197,6 +197,16 @@ TASK_REGISTRY = {
         'name': 'Dot to Dot',
         'description': 'Sequential dot connection to reveal patterns',
         'module': 'vmevalkit.tasks.dot_to_dot_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'symmetry_completion': {
+        'name': 'Symmetry Completion',
+        'description': 'Left-right symmetry reasoning - complete right half by mirroring left half',
+        'module': 'vmevalkit.tasks.symmetry_completion_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
     'tower_of_hanoi': {
         'name': 'Tower of Hanoi',
         'description': 'Single-move planning and constraint satisfaction',

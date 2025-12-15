@@ -61,7 +61,7 @@ class PatternSpec:
         return f"{self.pattern_type}-{self.grid_size}-{missing_str}-{pattern_str}"
 
 
-class PatternCompletionRenderer:
+class SymmetryCompletionRenderer:
     """Renderer for symmetry completion frames."""
 
     def __init__(self, canvas: Canvas = CANVAS, dpi: int = DPI):
@@ -139,12 +139,12 @@ class PatternCompletionRenderer:
         plt.close(fig)
 
 
-class PatternCompletionGenerator:
+class SymmetryCompletionGenerator:
     """Generator for symmetry completion tasks."""
 
     def __init__(self, canvas: Canvas = CANVAS):
         self.canvas = canvas
-        self.renderer = PatternCompletionRenderer(canvas)
+        self.renderer = SymmetryCompletionRenderer(canvas)
         self.rng = random.Random()
         self.output_root = Path("data/questions/symmetry_completion_task")
         self._seen_signatures: set[str] = set()
@@ -201,7 +201,7 @@ class PatternCompletionGenerator:
             "prompt": prompt,
             "first_image_path": str(first_png),
             "final_image_path": str(final_png),
-            "task_category": "PatternCompletion",
+            "task_category": "SymmetryCompletion",
             "difficulty": difficulty,
             "symmetry_completion_data": metadata,
             "created_at": datetime.now().isoformat(),
@@ -563,7 +563,7 @@ def create_dataset(
     """
     Entry point used by VMEvalKit runner.
     """
-    generator = PatternCompletionGenerator()
+    generator = SymmetryCompletionGenerator()
     rng = random.Random(seed)
     diffs = list(difficulties) if difficulties else ["easy", "medium", "hard"]
 
@@ -581,7 +581,7 @@ def create_dataset(
 
     dataset = {
         "name": "symmetry_completion_tasks",
-        "description": f"Pattern completion reasoning tasks ({len(pairs)} pairs)",
+        "description": f"Symmetry completion reasoning tasks ({len(pairs)} pairs)",
         "pairs": pairs,
         "metadata": {
             "total_tasks": len(pairs),

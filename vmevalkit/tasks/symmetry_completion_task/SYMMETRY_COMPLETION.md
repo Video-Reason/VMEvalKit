@@ -93,10 +93,10 @@ data/questions/symmetry_completion_task/symmetry_completion_XXXX/
 
 `symmetry_completion_reasoning.py` contains:
 
-1. **PatternCompletionRenderer**: Draws first/final PNGs using matplotlib
-   - First frame: grid with incomplete pattern
-   - Final frame: grid with complete pattern
-2. **PatternCompletionGenerator**:
+1. **SymmetryCompletionRenderer**: Draws first/final PNGs using matplotlib
+   - First frame: grid with incomplete pattern (left half visible, right half missing)
+   - Final frame: grid with complete symmetric pattern
+2. **SymmetryCompletionGenerator**:
    - Generates patterns based on type and grid size
    - Selects missing positions based on difficulty
    - Ensures uniqueness through signature checking
