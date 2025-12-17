@@ -87,35 +87,39 @@ VMEvalKit uses a **three-layer modular architecture** that cleanly supports both
 
 ### Output Directory Hierarchy
 
-VMEvalKit creates a **multi-level directory structure** mirroring the question organization:
+VMEvalKit creates a **multi-level directory structure** for organized experiment management:
 
 ```
 data/outputs/
-├── {domain}_task/                    # Task domain (e.g., maze_task)
-│   └── {task_id}/                   # Individual task (e.g., maze_0000)
-│       └── {run_id}/                # Unique run identifier
-│           ├── video/
-│           │   └── generated_video.mp4
-│           ├── question/
-│           │   ├── first_frame.png
-│           │   ├── final_frame.png  
-│           │   ├── prompt.txt
-│           │   └── question_metadata.json
-│           └── metadata.json
+└── {experiment_name}/               # Experiment (e.g., "pilot_experiment")
+    └── {model_name}/                # Model (e.g., "luma-ray-2")
+        └── {domain}_task/           # Task domain (e.g., "maze_task")
+            └── {task_id}/           # Individual task (e.g., "maze_0000")
+                └── {run_id}/        # Unique run identifier
+                    ├── video/
+                    │   └── generated_video.mp4
+                    ├── question/
+                    │   ├── first_frame.png
+                    │   ├── final_frame.png  
+                    │   ├── prompt.txt
+                    │   └── question_metadata.json
+                    └── metadata.json
 
 # Real example:
 data/outputs/
-├── maze_task/
-│   └── maze_0000/
-│       └── luma-ray-2_maze_0000_20250103_143025/
-│           ├── video/
-│           │   └── generated_video.mp4
-│           ├── question/
-│           │   ├── first_frame.png
-│           │   ├── final_frame.png
-│           │   ├── prompt.txt
-│           │   └── question_metadata.json
-│           └── metadata.json
+└── pilot_experiment/
+    └── luma-ray-2/
+        └── maze_task/
+            └── maze_0000/
+                └── luma-ray-2_maze_0000_20250103_143025/
+                    ├── video/
+                    │   └── generated_video.mp4
+                    ├── question/
+                    │   ├── first_frame.png
+                    │   ├── final_frame.png
+                    │   ├── prompt.txt
+                    │   └── question_metadata.json
+                    └── metadata.json
 ```
 
 ### Metadata Structure
@@ -139,14 +143,14 @@ The `metadata.json` file contains comprehensive inference information:
     "task_category": "maze"
   },
   "output": {
-    "video_path": "data/outputs/maze_task/maze_0000/luma-ray-2_maze_0000_20250103_143025/video/generated_video.mp4",
+    "video_path": "data/outputs/pilot_experiment/luma-ray-2/maze_task/maze_0000/luma-ray-2_maze_0000_20250103_143025/video/generated_video.mp4",
     "generation_id": "abc123-def456",  # Provider-specific ID
     "video_url": "https://..."         # If using cloud storage
   },
   "paths": {
-    "inference_dir": "data/outputs/maze_task/maze_0000/luma-ray-2_maze_0000_20250103_143025",
-    "video_dir": "data/outputs/maze_task/maze_0000/luma-ray-2_maze_0000_20250103_143025/video",
-    "question_dir": "data/outputs/maze_task/maze_0000/luma-ray-2_maze_0000_20250103_143025/question"
+    "inference_dir": "data/outputs/pilot_experiment/luma-ray-2/maze_task/maze_0000/luma-ray-2_maze_0000_20250103_143025",
+    "video_dir": "data/outputs/pilot_experiment/luma-ray-2/maze_task/maze_0000/luma-ray-2_maze_0000_20250103_143025/video",
+    "question_dir": "data/outputs/pilot_experiment/luma-ray-2/maze_task/maze_0000/luma-ray-2_maze_0000_20250103_143025/question"
   },
   "question_data": {
     // Complete original question metadata
@@ -163,16 +167,6 @@ The `metadata.json` file contains comprehensive inference information:
 
 
 ## Running Experiments
-
-### Basic Usage
-
-Generate dataset and run experiments:
-
-```bash
-source venv/bin/activate
-
-python run.py
-```
 
 
 ## 💻 Python API
@@ -219,7 +213,7 @@ Set up API keys in `.env` file:
 # Commercial APIs
 LUMA_API_KEY=your_key_here
 WAVESPEED_API_KEY=your_wavespeed_api_key
-RUNWAY_API_SECRET=your_runway_secret
+RUNWAYML_API_SECRET=your_runway_secret
 OPENAI_API_KEY=your_openai_key
 
 # AWS for S3 storage (optional)

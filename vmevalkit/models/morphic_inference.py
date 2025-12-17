@@ -41,7 +41,7 @@ class MorphicService:
                 - nproc_per_node: Number of GPUs (default: 8)
         """
         self.model_id = model_id
-        self.output_dir = Path(output_dir)
+        self.output_dir = Path(output_dir).resolve()  # Always use absolute path
         self.output_dir.mkdir(exist_ok=True, parents=True)
         self.kwargs = kwargs
         
@@ -54,13 +54,13 @@ class MorphicService:
         # Get weight paths from environment variables or kwargs
         self.wan2_ckpt_dir = kwargs.get(
             'wan2_ckpt_dir',
-            os.getenv('MORPHIC_WAN2_CKPT_DIR', './Wan2.2-I2V-A14B')
+            os.getenv('MORPHIC_WAN2_CKPT_DIR', './weights/wan/Wan2.2-I2V-A14B')
         )
         self.lora_weights_path = kwargs.get(
             'lora_weights_path',
             os.getenv(
                 'MORPHIC_LORA_WEIGHTS_PATH',
-                './morphic-frames-lora-weights/lora_interpolation_high_noise_final.safetensors'
+                './weights/morphic/lora_interpolation_high_noise_final.safetensors'
             )
         )
         
@@ -97,7 +97,7 @@ class MorphicService:
             errors.append(
                 f"Wan2.2 weights directory not found at {self.wan2_ckpt_dir}.\n"
                 f"Please download weights:\n"
-                f"huggingface-cli download Wan-AI/Wan2.2-I2V-A14B --local-dir ./Wan2.2-I2V-A14B"
+                f"huggingface-cli download Wan-AI/Wan2.2-I2V-A14B --local-dir ./weights/wan/Wan2.2-I2V-A14B"
             )
         
         # Check LoRA weights file
@@ -106,7 +106,7 @@ class MorphicService:
             errors.append(
                 f"LoRA weights file not found at {self.lora_weights_path}.\n"
                 f"Please download weights:\n"
-                f"huggingface-cli download morphic/Wan2.2-frames-to-video --local-dir ./morphic-frames-lora-weights"
+                f"huggingface-cli download morphic/Wan2.2-frames-to-video --local-dir ./weights/morphic"
             )
         
         if errors:
@@ -136,7 +136,7 @@ class MorphicService:
         # Generate output filename
         timestamp = int(time.time())
         output_filename = f"morphic_{timestamp}.mp4"
-        output_path = self.output_dir / output_filename
+        output_path = (self.output_dir / output_filename).resolve()  # Convert to absolute path
         
         # Build torchrun command
         cmd = [
@@ -168,7 +168,7 @@ class MorphicService:
                 cwd=str(MORPHIC_PATH),
                 capture_output=True,
                 text=True,
-                timeout=900  # 15 minute timeout for large model
+                timeout=1800  # 30 minute timeout for distributed large model inference
             )
             
             success = result.returncode == 0
@@ -176,7 +176,7 @@ class MorphicService:
             
         except subprocess.TimeoutExpired:
             success = False
-            error_msg = "Morphic inference timed out (exceeded 15 minutes)"
+            error_msg = "Morphic inference timed out (exceeded 30 minutes)"
         except Exception as e:
             success = False
             error_msg = f"Morphic inference failed: {str(e)}"
@@ -270,14 +270,27 @@ class MorphicWrapper(ModelWrapper):
     ):
         """Initialize Morphic wrapper."""
         self.model = model
-        self.output_dir = Path(output_dir)
-        self.output_dir.mkdir(exist_ok=True, parents=True)
+        self._output_dir = Path(output_dir).resolve()  # Always use absolute path
+        self._output_dir.mkdir(exist_ok=True, parents=True)
         self.kwargs = kwargs
         
         # Create MorphicService instance
         self.morphic_service = MorphicService(
-            model_id=model, output_dir=output_dir, **kwargs
+            model_id=model, output_dir=str(self._output_dir), **kwargs
         )
+    
+    @property
+    def output_dir(self) -> Path:
+        """Get the current output directory."""
+        return self._output_dir
+    
+    @output_dir.setter
+    def output_dir(self, value: Union[str, Path]):
+        """Set the output directory and update the service's output_dir too."""
+        self._output_dir = Path(value).resolve()
+        self._output_dir.mkdir(exist_ok=True, parents=True)
+        # Also update the service's output_dir
+        self.morphic_service.output_dir = self._output_dir
     
     def generate(
         self,
