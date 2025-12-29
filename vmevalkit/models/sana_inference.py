@@ -1,19 +1,18 @@
 """SANA-Video Integration for VMEvalKit
 
-Uses SanaImageToVideoPipeline from diffusers for text+image → video generation.
+Uses SanaVideoPipeline from diffusers for text+image → video generation.
 Single backbone (SANA-Video 2B) supports all conditioning modes:
 - Text-to-Video
 - Image-to-Video  
 - Text+Image-to-Video (TextImage-to-Video)
 
-Model variants:
-- sana-video-2b-480p: Base short-video model (~5 seconds, 81 frames)
-- sana-video-2b-longlive: Extended length via block linear KV-cache
+Supported model:
+- sana-video-2b-480p: Short-video model (~5 seconds, 81 frames, 480x832)
 
 Performance: ~22GB VRAM, ~4 minutes on RTX A6000 (50 steps)
 
 Requirements:
-- diffusers>=0.36.0
+- diffusers>=0.36.0 (with SanaVideoPipeline support)
 
 References:
 - HuggingFace: https://huggingface.co/Efficient-Large-Model/SANA-Video_2B_480p_diffusers
@@ -28,7 +27,7 @@ import logging
 
 import torch
 from PIL import Image
-from diffusers import SanaImageToVideoPipeline
+from diffusers import SanaVideoPipeline
 from diffusers.utils import export_to_video, load_image
 
 from .base import ModelWrapper
@@ -39,8 +38,8 @@ logger = logging.getLogger(__name__)
 class SanaVideoService:
     """Service for SANA-Video inference using diffusers pipeline.
     
-    Uses SanaImageToVideoPipeline for text+image conditioned video generation.
-    The same 2B backbone supports text-only, image-only, and text+image modes.
+    Uses SanaVideoPipeline for text+image to video generation.
+    The 2B backbone supports text-only, image-only, and text+image modes.
     
     Features:
     - Motion score control for video dynamics
@@ -92,11 +91,14 @@ class SanaVideoService:
             encoder_dtype = torch.float32
             vae_dtype = torch.float32
         
-        # Load pipeline and optimize component dtypes
-        self.pipe = SanaImageToVideoPipeline.from_pretrained(self.model_id)
-        self.pipe.transformer.to(transformer_dtype)
-        self.pipe.text_encoder.to(encoder_dtype)
+        logger.info("Using pipeline: SanaVideoPipeline")
+        self.pipe = SanaVideoPipeline.from_pretrained(
+            self.model_id,
+            torch_dtype=transformer_dtype
+        )
+        
         self.pipe.vae.to(vae_dtype)
+        self.pipe.text_encoder.to(encoder_dtype)
         self.pipe.to(self.device)
         
         logger.info(f"SANA-Video model loaded on {self.device}")
@@ -170,7 +172,7 @@ class SanaVideoService:
         generator = torch.Generator(device=self.device).manual_seed(seed)
         logger.info(f"Using seed: {seed}")
 
-        # Generate using SanaImageToVideoPipeline
+        # Generate using SanaVideoPipeline or LongSanaVideoPipeline
         # Note: diffusers uses 'frames' parameter, not 'num_frames'
         pipeline_kwargs = {
             "image": image,

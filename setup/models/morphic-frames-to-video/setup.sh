@@ -17,7 +17,10 @@ pip install -q torch==2.5.0 torchvision --index-url https://download.pytorch.org
 # Build flash-attn from source (like original Morphic setup)
 # Install build dependencies required by flash-attn
 pip install -q packaging ninja psutil wheel setuptools
-pip install -q flash-attn==2.7.0.post2 --no-build-isolation
+
+# Install flash-attn with --no-cache-dir to avoid cross-device link errors
+# This can occur when pip cache and temp directories are on different filesystems
+pip install -q --no-cache-dir flash-attn==2.7.0.post2 --no-build-isolation
 
 # Install compatible versions to avoid dependency hell:
 # - transformers<=4.51.3 (required by Morphic, no modeling_layers module)
@@ -31,6 +34,14 @@ pip install -q decord==0.6.0
 
 # Install from requirements.txt (respects version ranges from original)
 pip install -q -r "${SUBMODULES_DIR}/morphic-frames-to-video/requirements.txt"
+
+# Additional utilities for VMEvalKit validation and runtime
+pip install -q Pillow==10.4.0
+pip install -q pydantic==2.12.5 pydantic-settings==2.12.0 python-dotenv==1.2.1
+pip install -q requests==2.32.5 httpx==0.28.1
+# Note: This version conflicts with transformers 4.51.3's preference (>=0.30.0)
+# but is pinned for VMEvalKit consistency. The warning is non-critical.
+pip install -q "huggingface_hub[cli]==0.26.2"
 
 print_section "Checkpoints"
 ensure_morphic_assets

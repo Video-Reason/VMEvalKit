@@ -42,7 +42,7 @@ pip install -q tokenizers==0.15.0
 pip install -q deepspeed==0.15.1
 pip install -q pyarrow==14.0.1
 pip install -q tensorboard==2.19.0
-pip install -q git+https://github.com/openai/CLIP.git
+pip install -q --no-cache-dir git+https://github.com/openai/CLIP.git
 
 # Additional utilities for VMEvalKit
 pip install -q Pillow==9.5.0
@@ -51,8 +51,9 @@ pip install -q requests==2.32.5 httpx==0.28.1
 pip install -q "huggingface_hub[cli]==0.26.2"
 
 # Install flash-attn v2.6.3 (per official docs)
+# Use --no-cache-dir to avoid cross-device link errors on different filesystems
 pip install -q ninja
-pip install git+https://github.com/Dao-AILab/flash-attention.git@v2.6.3 --no-build-isolation
+pip install -q --no-cache-dir git+https://github.com/Dao-AILab/flash-attention.git@v2.6.3 --no-build-isolation
 
 # NOTE: xfuser is NOT installed - single GPU mode only (avoids dependency conflicts)
 # For multi-GPU, manually install xfuser and reinstall torch afterwards

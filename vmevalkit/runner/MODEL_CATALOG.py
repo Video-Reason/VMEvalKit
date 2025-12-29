@@ -540,20 +540,6 @@ SANA_VIDEO_MODELS = {
         },
         "description": "SANA-Video 2B 480p - Efficient text+image to video (480x832)",
         "family": "SANA-Video"
-    },
-    "sana-video-2b-longlive": {
-        "wrapper_module": "vmevalkit.models.sana_inference",
-        "wrapper_class": "SanaVideoWrapper",
-        "service_class": "SanaVideoService",
-        "model": "Efficient-Large-Model/SANA-Video_2B_480p_LongLive",
-        "args": {
-            "resolution": (480, 832),
-            "num_frames": 161,
-            "fps": 16,
-            "guidance_scale": 4.5
-        },
-        "description": "SANA-Video 2B LongLive - Extended length video generation",
-        "family": "SANA-Video"
     }
 }
 

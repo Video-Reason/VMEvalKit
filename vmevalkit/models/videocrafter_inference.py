@@ -20,6 +20,11 @@ VMEVAL_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(VIDEOCRAFTER_PATH))
 sys.path.insert(0, str(VIDEOCRAFTER_PATH / "scripts" / "evaluation"))
 
+# Import torch and checkpoint module BEFORE importing VideoCrafter modules
+# VideoCrafter's lvdm.common module expects torch.utils.checkpoint to be available
+import torch
+import torch.utils.checkpoint
+
 # VideoCrafter optionally uses xFormers "memory_efficient_attention" for *spatial* attention
 # when xformers is importable. On some GPU/driver/CUDA combos this can crash at runtime with:
 #   RuntimeError: cutlassF: no kernel found to launch!
@@ -30,9 +35,6 @@ import importlib
 
 _vc_attention = importlib.import_module("lvdm.modules.attention")
 _vc_attention.XFORMERS_IS_AVAILBLE = False
-
-# Import VideoCrafter dependencies
-import torch
 import torchvision
 from omegaconf import OmegaConf
 from pytorch_lightning import seed_everything

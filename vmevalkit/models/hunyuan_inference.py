@@ -40,7 +40,9 @@ class HunyuanVideoService:
             **kwargs: Additional parameters
         """
         self.model_id = model_id
-        self.output_dir = Path(output_dir)
+        # Resolve to an absolute path so the subprocess (running from the submodule dir)
+        # writes to the same folder we later read from.
+        self.output_dir = Path(output_dir).expanduser().resolve()
         self.output_dir.mkdir(exist_ok=True, parents=True)
         self.kwargs = kwargs
         
@@ -314,7 +316,7 @@ class HunyuanVideoWrapper(ModelWrapper):
     ):
         """Initialize HunyuanVideo wrapper."""
         self.model = model
-        self._output_dir = Path(output_dir)
+        self._output_dir = Path(output_dir).expanduser().resolve()
         self._output_dir.mkdir(exist_ok=True, parents=True)
         self.kwargs = kwargs
         
@@ -331,7 +333,7 @@ class HunyuanVideoWrapper(ModelWrapper):
     @output_dir.setter
     def output_dir(self, value: Union[str, Path]):
         """Set the output directory and update the service's output_dir too."""
-        self._output_dir = Path(value)
+        self._output_dir = Path(value).expanduser().resolve()
         self._output_dir.mkdir(exist_ok=True, parents=True)
         # Also update the service's output_dir
         self.hunyuan_service.output_dir = self._output_dir

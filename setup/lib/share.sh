@@ -31,7 +31,6 @@ declare -a OPENSOURCE_MODELS=(
     "cogvideox-5b-i2v"
     "cogvideox1.5-5b-i2v"
     "sana-video-2b-480p"
-    "sana-video-2b-longlive"
     "wan-2.2-i2v-a14b"
 )
 

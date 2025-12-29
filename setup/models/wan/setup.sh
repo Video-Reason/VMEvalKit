@@ -16,7 +16,7 @@ source "${SCRIPT_DIR}/../../lib/share.sh"
 # )
 
 # Get model name from argument or use first one as default
-MODEL="wan"
+MODEL="wan-2.2-i2v-a14b"
 
 print_section "Virtual Environment"
 create_model_venv "$MODEL"
