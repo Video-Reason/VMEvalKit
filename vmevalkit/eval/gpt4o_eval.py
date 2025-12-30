@@ -15,6 +15,7 @@ import numpy as np
 from PIL import Image
 import io
 import httpx
+from .eval_prompt import TASK_PROMPTS
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,9 @@ TASK_GUIDANCE = {
     "raven_task": "Verify that the pattern completion in the final frame matches the expected pattern.",
     "sudoku_task": "Check if the numbers placed in the final frame match the expected solution.",
     "object_subtraction_task": "Verify that the specified object(s) have been correctly removed from the scene, while other objects remain unchanged and the scene remains complete.",
-    "object_permanence_task": "Verify that the object(s) remain unchanged in position, color, and shape, and the occluder is moved out of the frame."
+    "object_permanence_task": "Verify that the object(s) remain unchanged in position, color, and shape, and the occluder is moved out of the frame.",
+    "light_sequence_task": "Verify that the correct lights are on and all other lights are off in the final frame.",
+    "sequence_completion_task": "Verify that the sequence is correctly completed with the next element that follows the pattern. The final frame should show the complete sequence with the correct answer element."
 }
 
 
@@ -109,7 +112,7 @@ class GPT4OEvaluator:
                 4: Mostly correct - close to expected result with minor errors
                 5: Perfect - matches expected result
 
-                {TASK_GUIDANCE.get(task_type, '')}
+                {TASK_PROMPTS.get(task_type, '')}
 
                 Respond in JSON: {{"solution_correctness_score": <1-5>, "explanation": "<brief explanation>"}}
                 """

@@ -136,6 +136,13 @@ TASK_REGISTRY = {
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
+    'control_panel': {
+        'name': 'Control Panel',
+        'description': 'Control panel animation - lever position determines indicator light color',
+        'module': 'vmevalkit.tasks.control_panel_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
     'vpct': {
         'name': 'VPCT',
         'description': 'Visual Physics Comprehension Test - predict which bucket the ball will fall into',
@@ -145,6 +152,20 @@ TASK_REGISTRY = {
         'hf': True,
         'hf_dataset': 'camelCase12/vpct-1',
         'hf_special_format': True  # Indicates file-based format, not standard dataset format
+    },
+    '2d_dice_reasoning': {
+        'name': '2D Dice Reasoning',
+        'description': '2D dice opposite face spatial reasoning and logical deduction (opposite faces sum to 7)',
+        'module': 'vmevalkit.tasks.dice_2d_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'tetris': {
+        'name': 'Tetris',
+        'description': 'Tetris line-clearing reasoning tasks with animation instructions',
+        'module': 'vmevalkit.tasks.tetris_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
     'mirror_clock': {
         'name': 'Mirror Clock',
@@ -159,6 +180,80 @@ TASK_REGISTRY = {
         'module': 'vmevalkit.tasks.traffic_light_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    'counting_objects': {
+        'name': 'Counting Circles',
+        'description': 'Visual counting of Objects',
+        'module': 'vmevalkit.tasks.counting_objects_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'letter_counting': {
+        'name': 'Letter Counting',
+        'description': 'Count letter occurrences in words',
+        'module': 'vmevalkit.tasks.letter_counting_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'subway_pathfinding': {
+        'name': 'Subway Pathfinding',
+        'description': 'Navigate through subway networks from source to destination',
+        'module': 'vmevalkit.tasks.subway_pathfinding_task',
+    },
+    'light_sequence': {
+        'name': 'Light Sequence',
+        'description': 'Spatial reasoning and mathematical pattern recognition with light sequences',
+        'module': 'vmevalkit.tasks.light_sequence_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'sequence_completion': {
+        'name': 'Sequence Completion',
+        'description': 'Pattern recognition and logical extrapolation for sequence completion',
+        'module': 'vmevalkit.tasks.sequence_completion_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    'dot_to_dot': {
+        'name': 'Dot to Dot',
+        'description': 'Sequential dot connection to reveal patterns',
+        'module': 'vmevalkit.tasks.dot_to_dot_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'symmetry_completion': {
+        'name': 'Symmetry Completion',
+        'description': 'Left-right symmetry reasoning - complete right half by mirroring left half',
+        'module': 'vmevalkit.tasks.symmetry_completion_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'tower_of_hanoi': {
+        'name': 'Tower of Hanoi',
+        'description': 'Single-move planning and constraint satisfaction',
+        'module': 'vmevalkit.tasks.tower_of_hanoi_task.tower_of_hanoi_reasoning',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'rotation_puzzle': {
+        'name': 'Rotation Puzzle',
+        'description': 'Pipe puzzle with rotatable squares to connect paths',
+        'module': 'vmevalkit.tasks.rotation_puzzle_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'nonogram': {
+        'name': 'Nonogram',
+        'description': 'Constraint satisfaction puzzle with row/column hints',
+        'module': 'vmevalkit.tasks.nonogram_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    'pbench': {
+        'name': 'PBench',
+        'description': 'nvidia/PBench',
+        'module': 'vmevalkit.tasks.external.pbench',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs'],
+        'hf': True,
+        'hf_dataset': 'nvidia/PBench',
+        'hf_split': 'benchmark'
     }
 }
-

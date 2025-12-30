@@ -21,6 +21,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!setup/lib/    # But allow setup/lib/ to be tracked
 lib64/
 parts/
 sdist/
@@ -219,7 +220,8 @@ outputs/
 deprecated/
 
 # VMEvalKit data folder - ignore large datasets but keep scripts and logging
-data/questions/
+data/questions/*
+!data/questions/tests_task/
 data/outputs/
 # Keep: data/s3_sync.py, data/data_logging/
 .vscode/
