@@ -16,7 +16,7 @@ from PIL import Image
 import io
 from openai import OpenAI
 
-logger = logging.getLogger(__name__)
+from .eval_prompt import TASK_PROMPTS
 
 TASK_GUIDANCE = {
     "object_permanence_task": "Verify that the object(s) remain unchanged in position, color, and shape, and the occluder is moved out of the frame.",
@@ -30,6 +30,7 @@ TASK_GUIDANCE = {
     "light_sequence_task": "Verify that the correct lights are on and all other lights are off in the final frame.",
     "sequence_completion_task": "Verify that the sequence is correctly completed with the next element that follows the pattern. The final frame should show the complete sequence with the correct answer element."
 }
+logger = logging.getLogger(__name__)
 
 
 class InternVLEvaluator:
@@ -47,8 +48,6 @@ class InternVLEvaluator:
         self.experiment_dir = Path("data/outputs") / experiment_name
         
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Use evaluator_name for file naming, default to class name
         self.evaluator_name = evaluator_name or self.__class__.__name__
         
         self.api_key = api_key or os.getenv("VISION_API_KEY", "YOUR_API_KEY")
@@ -128,7 +127,7 @@ class InternVLEvaluator:
                 4: Mostly correct - close to expected result with minor errors
                 5: Perfect - matches expected result
 
-                {TASK_GUIDANCE.get(task_type, '')}
+                {TASK_PROMPTS.get(task_type, '')}
 
                 Respond in JSON: {{"solution_correctness_score": <1-5>, "explanation": "<brief explanation>"}}
                 """
@@ -145,7 +144,7 @@ class InternVLEvaluator:
                 4: Goal mostly achieved - close to meeting the goal with minor issues
                 5: Goal fully achieved - the goal is completely met
 
-                {TASK_GUIDANCE.get(task_type, '')}
+                {TASK_PROMPTS.get(task_type, '')}
 
                 Respond in JSON: {{"goal_achieved_score": <1-5>, "explanation": "<brief explanation>"}}
                 """
@@ -161,11 +160,10 @@ class InternVLEvaluator:
         prompt_path = task_dir / "question" / "prompt.txt"
         question_metadata_path = task_dir / "question" / "question_metadata.json"
         
-        # Check if final_frame_path exists, if not, try goal-based evaluation
+
         if not final_frame_path.exists():
             logger.info(f"No ground truth final frame for {model_name}/{task_type}/{task_id}, trying goal-based evaluation")
             
-            # Try to read goal from question_metadata.json
             goal = None
             if question_metadata_path.exists():
                 question_metadata = json.load(question_metadata_path.open())

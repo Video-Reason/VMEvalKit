@@ -15,6 +15,7 @@ import numpy as np
 from PIL import Image
 import io
 import httpx
+from .eval_prompt import TASK_PROMPTS
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +112,7 @@ class GPT4OEvaluator:
                 4: Mostly correct - close to expected result with minor errors
                 5: Perfect - matches expected result
 
-                {TASK_GUIDANCE.get(task_type, '')}
+                {TASK_PROMPTS.get(task_type, '')}
 
                 Respond in JSON: {{"solution_correctness_score": <1-5>, "explanation": "<brief explanation>"}}
                 """
