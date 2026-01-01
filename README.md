@@ -24,7 +24,7 @@ data/questions/{domain}_task/{task_id}/
 # 1. Install
 git clone https://github.com/hokindeng/VMEvalKit.git
 cd VMEvalKit
-pip install -r requirements.txt && pip install -e .
+pip install -e .
 
 # 2. Setup models
 bash setup/install_model.sh --model svd --validate
