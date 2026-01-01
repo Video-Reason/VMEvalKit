@@ -219,7 +219,7 @@ deprecated/
 
 # VMEvalKit data folder - ignore large datasets but keep scripts and logging
 data/questions/*
-!data/questions/tests_task/
+!data/questions/test_task/
 data/outputs/
 # Keep: data/s3_sync.py, data/data_logging/
 .vscode/
