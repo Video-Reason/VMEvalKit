@@ -11,7 +11,7 @@ export VMEVAL_ROOT="$(cd "${SHARE_LIB_DIR}/../.." && pwd)"
 export ENVS_DIR="${VMEVAL_ROOT}/envs"
 export SUBMODULES_DIR="${VMEVAL_ROOT}/submodules"
 export LOGS_DIR="${VMEVAL_ROOT}/logs"
-export TESTS_DIR="${VMEVAL_ROOT}/data/questions/tests_task"
+export TESTS_DIR="${VMEVAL_ROOT}/data/questions/test_task"
 export WEIGHTS_DIR="${VMEVAL_ROOT}/weights"
 
 # ============================================================================
@@ -256,19 +256,19 @@ validate_model() {
     set +e
     timeout "$timeout_seconds" python "${VMEVAL_ROOT}/examples/generate_videos.py" \
         --model "$model" \
-        --task-id tests_0001 tests_0002
+        --task-id test_0001 test_0002
     local exit_code=$?
     set -e
     deactivate
     
     local video_count
-    local validation_output="${test_output}/${model}/tests_task"
+    local validation_output="${test_output}/${model}/test_task"
     local model_output_dir="${test_output}/${model}"
     video_count=$(find "$validation_output" \( -name "*.mp4" -o -name "*.webm" \) 2>/dev/null | wc -l)
     
     # Clean up all task directories except tests_task
     if [[ -d "$model_output_dir" ]]; then
-        find "$model_output_dir" -mindepth 1 -maxdepth 1 -type d ! -name 'tests_task' -exec rm -rf {} +
+        find "$model_output_dir" -mindepth 1 -maxdepth 1 -type d ! -name 'test_task' -exec rm -rf {} +
     fi
     
     if [[ $exit_code -eq 0 ]] && [[ $video_count -ge 2 ]]; then
