@@ -25,6 +25,8 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 from PIL import Image
 from dotenv import load_dotenv
+import multiprocessing as mp
+from functools import partial
 
 # Load environment variables from .env file
 load_dotenv()
@@ -257,32 +259,134 @@ def run_single_inference(
     return result
 
 
+def process_tasks_on_gpu(
+    gpu_id: int,
+    model_name: str,
+    tasks: List[Dict[str, Any]],
+    model_output_dir: Path,
+    domain: str,
+    skip_existing: bool,
+    total_jobs: int,
+    job_offset: int
+) -> List[Dict[str, Any]]:
+    """
+    Process a subset of tasks on a specific GPU.
+    
+    Args:
+        gpu_id: GPU device ID to use
+        model_name: Name of the model
+        tasks: List of tasks to process on this GPU
+        model_output_dir: Output directory for this model
+        domain: Domain name
+        skip_existing: Whether to skip existing outputs
+        total_jobs: Total number of jobs across all GPUs
+        job_offset: Starting job number for this GPU
+        
+    Returns:
+        List of result dictionaries
+    """
+    # Set CUDA_VISIBLE_DEVICES for this process
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+    print(f"      [GPU {gpu_id}] 🎮 Starting processing on GPU {gpu_id} with {len(tasks)} tasks")
+    
+    # Create runner for this GPU
+    runner = InferenceRunner(output_dir=str(model_output_dir))
+    
+    results = []
+    local_job_counter = 0
+    
+    for task in tasks:
+        local_job_counter += 1
+        global_job_id = job_offset + local_job_counter
+        task_id = task["id"]
+        
+        print(f"      [GPU {gpu_id}] [{global_job_id}/{total_jobs}] Processing: {task_id}")
+        
+        # Check if inference folder already exists WITH actual video file
+        run_id_pattern = f"{model_name}_{task_id}_*"
+        domain_dir_name = f"{domain}_task"
+        task_folder = model_output_dir / domain_dir_name / task_id
+        existing_dirs = list(task_folder.glob(run_id_pattern))
+        
+        # Verify the run folder actually contains a video file
+        has_valid_output = False
+        if existing_dirs:
+            for run_dir in existing_dirs:
+                video_dir = run_dir / "video"
+                if video_dir.exists():
+                    video_files = list(video_dir.glob("*.mp4")) + list(video_dir.glob("*.webm"))
+                    if video_files:
+                        has_valid_output = True
+                        break
+        
+        if skip_existing and has_valid_output:
+            print(f"      [GPU {gpu_id}] ⏭️  Skipped (existing output: {existing_dirs[0].name})")
+            result = {
+                "task_id": task_id,
+                "model_name": model_name,
+                "domain": domain,
+                "success": True,
+                "skipped": True,
+                "gpu_id": gpu_id
+            }
+            results.append(result)
+            continue
+        
+        result = run_single_inference(
+            model_name=model_name,
+            task=task,
+            category=domain,
+            output_dir=model_output_dir,
+            runner=runner
+        )
+        
+        result["gpu_id"] = gpu_id
+        result["skipped"] = False
+        results.append(result)
+        
+        if result["success"]:
+            print(f"      [GPU {gpu_id}] ✅ Completed successfully")
+        else:
+            print(f"      [GPU {gpu_id}] ❌ Failed: {result.get('error', 'Unknown error')}")
+    
+    print(f"      [GPU {gpu_id}] 🏁 GPU {gpu_id} finished processing {len(tasks)} tasks")
+    return results
+
+
 def run_pilot_experiment(
     tasks_by_domain: Dict[str, List[Dict[str, Any]]],
     models: Dict[str, str],
     output_dir: Path,
     questions_dir: Path,
     skip_existing: bool = True,
+    gpu_list: Optional[List[int]] = None,
 ) -> Dict[str, Any]:
     """
-    Run full pilot experiment with SEQUENTIAL execution on ALL human-approved tasks.
+    Run full pilot experiment with MULTI-GPU PARALLEL execution on ALL human-approved tasks.
     
-    Processes one model at a time, and for each model, one task at a time.
+    Processes one model at a time. For each model and domain, splits tasks across GPUs.
     
     Args:
         tasks_by_domain: Dictionary mapping domain to task lists
         models: Dictionary of model names to test
         output_dir: Base output directory
+        questions_dir: Questions directory path
         skip_existing: Skip tasks that already have outputs
+        gpu_list: List of GPU IDs to use (e.g., [0, 1, 2, 3])
         
     Returns:
         Dictionary with all results and statistics
     """
-    print("🚀 VMEVAL KIT EXPERIMENT - CLEAN EXECUTION")
+    num_gpus = len(gpu_list) if gpu_list else 1
+    execution_mode = f"MULTI-GPU PARALLEL ({num_gpus} GPUs)" if num_gpus > 1 else "SEQUENTIAL (1 GPU)"
+    
+    print("🚀 VMEVAL KIT EXPERIMENT - MULTI-GPU EXECUTION")
     print(f"\n📊 Experiment Configuration:")
     print(f"   Models to run: {len(models)} - {', '.join(models.keys())}")
     print(f"   Domains: {len(tasks_by_domain)}")
-    print(f"   🔄 Execution Mode: SEQUENTIAL")
+    print(f"   🔄 Execution Mode: {execution_mode}")
+    if gpu_list and num_gpus > 1:
+        print(f"   🎮 GPUs: {gpu_list}")
     
 
     total_tasks = sum(len(tasks) for tasks in tasks_by_domain.values())
@@ -320,16 +424,18 @@ def run_pilot_experiment(
     
     total_jobs = sum(len(tasks) for tasks in tasks_by_domain.values()) * len(models)
     print(f"📋 Total inference jobs to run: {total_jobs}")
-    print("🚀 Starting sequential execution...\n")
-    print("   Processing order: Model by model, task by task\n")
+    if num_gpus > 1:
+        print(f"🚀 Starting multi-GPU parallel execution...\n")
+        print(f"   Processing order: Model by model, domain by domain, tasks split across {num_gpus} GPUs\n")
+    else:
+        print("🚀 Starting sequential execution...\n")
+        print("   Processing order: Model by model, task by task\n")
     
     job_counter = 0
     
     for model_name, model_display in models.items():
         print(f"🤖 Processing Model: {model_display} ({model_name})")
-        # Use a model-specific output directory and runner (runner will further mirror domain/task)
         model_output_dir = output_dir / model_name
-        runner = InferenceRunner(output_dir=str(model_output_dir))
         
         model_start_time = datetime.now()
         model_completed = 0
@@ -338,64 +444,145 @@ def run_pilot_experiment(
         
         # Process all tasks for this model
         for domain, tasks in tasks_by_domain.items():
-            print(f"\n  📚 Domain: {domain.title()}")
+            print(f"\n  📚 Domain: {domain.title()} ({len(tasks)} tasks)")
             
-            for task in tasks:
-                job_counter += 1
-                task_id = task["id"]
-                job_id = f"{model_name}_{task_id}"
+            if num_gpus > 1 and len(tasks) > 0:
+                # Multi-GPU parallel execution: split tasks across GPUs
+                print(f"    🔀 Splitting {len(tasks)} tasks across {num_gpus} GPUs...")
                 
-                print(f"    [{job_counter}/{total_jobs}] Processing: {task_id}")
+                # Split tasks into chunks for each GPU
+                tasks_per_gpu = []
+                chunk_size = (len(tasks) + num_gpus - 1) // num_gpus  # Ceiling division
                 
-                # Check if inference folder already exists WITH actual video file
-                # Check inside mirrored domain/task folder for existing runs
-                run_id_pattern = f"{model_name}_{task_id}_*"
-                domain_dir_name = f"{domain}_task"
-                task_folder = model_output_dir / domain_dir_name / task_id
-                existing_dirs = list(task_folder.glob(run_id_pattern))
+                for i in range(num_gpus):
+                    start_idx = i * chunk_size
+                    end_idx = min((i + 1) * chunk_size, len(tasks))
+                    if start_idx < len(tasks):
+                        gpu_tasks = tasks[start_idx:end_idx]
+                        tasks_per_gpu.append((gpu_list[i], gpu_tasks, start_idx))
+                        print(f"    📦 GPU {gpu_list[i]}: {len(gpu_tasks)} tasks (indices {start_idx}-{end_idx-1})")
                 
-                # Verify the run folder actually contains a video file
-                has_valid_output = False
-                if existing_dirs:
-                    for run_dir in existing_dirs:
-                        video_dir = run_dir / "video"
-                        if video_dir.exists():
-                            video_files = list(video_dir.glob("*.mp4")) + list(video_dir.glob("*.webm"))
-                            if video_files:
-                                has_valid_output = True
-                                break
+                # Create processes for each GPU
+                processes = []
+                manager = mp.Manager()
+                return_dict = manager.dict()
                 
-                if skip_existing and has_valid_output:
-                    statistics["skipped"] += 1
-                    statistics["by_model"][model_name]["skipped"] += 1
-                    statistics["by_domain"][domain]["skipped"] += 1
-                    model_skipped += 1
-                    print(f"      ⏭️  Skipped (existing output: {existing_dirs[0].name})")
-                    continue
+                domain_jobs = len(tasks)
                 
-                result = run_single_inference(
-                    model_name=model_name,
-                    task=task,
-                    category=domain,
-                    output_dir=model_output_dir,  # Use model-specific output dir
-                    runner=runner
-                )
+                for idx, (gpu_id, gpu_tasks, start_idx) in enumerate(tasks_per_gpu):
+                    job_offset = job_counter + start_idx
+                    
+                    def worker_wrapper(gpu_id, tasks, return_dict, idx):
+                        try:
+                            results = process_tasks_on_gpu(
+                                gpu_id=gpu_id,
+                                model_name=model_name,
+                                tasks=tasks,
+                                model_output_dir=model_output_dir,
+                                domain=domain,
+                                skip_existing=skip_existing,
+                                total_jobs=domain_jobs,
+                                job_offset=job_offset
+                            )
+                            return_dict[idx] = results
+                        except Exception as e:
+                            print(f"      [GPU {gpu_id}] ❌ Error: {str(e)}")
+                            return_dict[idx] = []
+                    
+                    p = mp.Process(
+                        target=worker_wrapper,
+                        args=(gpu_id, gpu_tasks, return_dict, idx)
+                    )
+                    processes.append(p)
+                    p.start()
                 
-                all_results.append(result)
+                # Wait for all processes to complete
+                for p in processes:
+                    p.join()
                 
-                if result["success"]:
-                    statistics["completed"] += 1
-                    statistics["by_model"][model_name]["completed"] += 1
-                    statistics["by_domain"][domain]["completed"] += 1
-                    model_completed += 1
-                    print(f"      ✅ Completed successfully")
-                else:
-                    statistics["failed"] += 1
-                    statistics["by_model"][model_name]["failed"] += 1
-                    statistics["by_domain"][domain]["failed"] += 1
-                    model_failed += 1
-                    print(f"      ❌ Failed: {result.get('error', 'Unknown error')}")
+                # Collect results from all GPUs
+                for idx in range(len(tasks_per_gpu)):
+                    if idx in return_dict:
+                        gpu_results = return_dict[idx]
+                        for result in gpu_results:
+                            all_results.append(result)
+                            
+                            if result.get("skipped", False):
+                                statistics["skipped"] += 1
+                                statistics["by_model"][model_name]["skipped"] += 1
+                                statistics["by_domain"][domain]["skipped"] += 1
+                                model_skipped += 1
+                            elif result["success"]:
+                                statistics["completed"] += 1
+                                statistics["by_model"][model_name]["completed"] += 1
+                                statistics["by_domain"][domain]["completed"] += 1
+                                model_completed += 1
+                            else:
+                                statistics["failed"] += 1
+                                statistics["by_model"][model_name]["failed"] += 1
+                                statistics["by_domain"][domain]["failed"] += 1
+                                model_failed += 1
                 
+                job_counter += len(tasks)
+                print(f"    ✅ Domain {domain.title()} completed on {num_gpus} GPUs")
+                
+            else:
+                # Sequential execution (single GPU or backward compatibility)
+                runner = InferenceRunner(output_dir=str(model_output_dir))
+                
+                for task in tasks:
+                    job_counter += 1
+                    task_id = task["id"]
+                    
+                    print(f"    [{job_counter}/{total_jobs}] Processing: {task_id}")
+                    
+                    # Check if inference folder already exists WITH actual video file
+                    run_id_pattern = f"{model_name}_{task_id}_*"
+                    domain_dir_name = f"{domain}_task"
+                    task_folder = model_output_dir / domain_dir_name / task_id
+                    existing_dirs = list(task_folder.glob(run_id_pattern))
+                    
+                    # Verify the run folder actually contains a video file
+                    has_valid_output = False
+                    if existing_dirs:
+                        for run_dir in existing_dirs:
+                            video_dir = run_dir / "video"
+                            if video_dir.exists():
+                                video_files = list(video_dir.glob("*.mp4")) + list(video_dir.glob("*.webm"))
+                                if video_files:
+                                    has_valid_output = True
+                                    break
+                    
+                    if skip_existing and has_valid_output:
+                        statistics["skipped"] += 1
+                        statistics["by_model"][model_name]["skipped"] += 1
+                        statistics["by_domain"][domain]["skipped"] += 1
+                        model_skipped += 1
+                        print(f"      ⏭️  Skipped (existing output: {existing_dirs[0].name})")
+                        continue
+                    
+                    result = run_single_inference(
+                        model_name=model_name,
+                        task=task,
+                        category=domain,
+                        output_dir=model_output_dir,
+                        runner=runner
+                    )
+                    
+                    all_results.append(result)
+                    
+                    if result["success"]:
+                        statistics["completed"] += 1
+                        statistics["by_model"][model_name]["completed"] += 1
+                        statistics["by_domain"][domain]["completed"] += 1
+                        model_completed += 1
+                        print(f"      ✅ Completed successfully")
+                    else:
+                        statistics["failed"] += 1
+                        statistics["by_model"][model_name]["failed"] += 1
+                        statistics["by_domain"][domain]["failed"] += 1
+                        model_failed += 1
+                        print(f"      ❌ Failed: {result.get('error', 'Unknown error')}")
         
         model_duration = (datetime.now() - model_start_time).total_seconds()
         print(f"\n  📊 Model {model_display} Summary: {model_completed} completed, {model_failed} failed, {model_skipped} skipped in {format_duration(model_duration)}")
@@ -489,7 +676,15 @@ def main():
         "--gpu",
         type=int,
         default=None,
-        help="GPU device ID to use (e.g., --gpu 1 for GPU 1). Sets CUDA_VISIBLE_DEVICES environment variable."
+        help="Single GPU device ID to use (e.g., --gpu 1 for GPU 1). Use --gpus for multiple GPUs."
+    )
+    
+    parser.add_argument(
+        "--gpus",
+        nargs="+",
+        type=int,
+        default=None,
+        help="Multiple GPU device IDs to use for parallel processing (e.g., --gpus 0 1 2 3). Tasks will be split across GPUs at domain level."
     )
     
     # Legacy parameter for compatibility
@@ -502,10 +697,21 @@ def main():
     
     args = parser.parse_args()
     
-    # Handle --gpu: Set CUDA_VISIBLE_DEVICES environment variable
-    if args.gpu is not None:
+    # Handle GPU configuration
+    gpu_list = None
+    if args.gpus:
+        # Multiple GPUs for parallel processing
+        gpu_list = args.gpus
+        print(f"🎮 Using {len(gpu_list)} GPUs for parallel processing: {gpu_list}")
+    elif args.gpu is not None:
+        # Single GPU (legacy mode)
+        gpu_list = [args.gpu]
         os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
         print(f"🎮 Using GPU {args.gpu} (CUDA_VISIBLE_DEVICES={args.gpu})")
+    else:
+        # No GPU specified, use GPU 0 as default
+        gpu_list = [0]
+        print(f"🎮 No GPU specified, using default GPU 0")
     
     if args.list_models:
         print("🎬 Available Models:")
@@ -601,6 +807,7 @@ def main():
         output_dir=output_dir,
         questions_dir=questions_dir,
         skip_existing=True,
+        gpu_list=gpu_list,
     )
     
     print("🎉 VIDEO GENERATION COMPLETE!")
