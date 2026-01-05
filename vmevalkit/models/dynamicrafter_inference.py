@@ -377,8 +377,7 @@ class DynamiCrafterService:
 
         # Generate output filename
         if output_filename is None:
-            prompt_slug = text_prompt.replace(" ", "_")[:30].replace("/", "_")
-            output_filename = f"{generation_id}_{prompt_slug}.mp4"
+            output_filename = "video.mp4"
 
         output_path = self.output_dir / output_filename
 

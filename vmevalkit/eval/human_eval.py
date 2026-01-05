@@ -64,10 +64,16 @@ class HumanEvaluator:
     def _get_task_data(self, model_name: str, task_type: str, task_id: str) -> Optional[Dict[str, Any]]:
         """Get data for a specific task."""
         task_dir = self.inference_dir / model_name / task_type / task_id
-        output_dirs = list(task_dir.iterdir())
-        if not output_dirs: return None
         
-        output_dir = output_dirs[0]
+        # Check if task_dir itself is the output dir (flat structure)
+        if (task_dir / "video").exists() and (task_dir / "question").exists():
+            output_dir = task_dir
+        else:
+            # Otherwise look for run subdirectories (backward compatibility)
+            output_dirs = list(task_dir.iterdir())
+            if not output_dirs: return None
+            output_dir = output_dirs[0]
+        
         prompt_path = output_dir / "question" / "prompt.txt"
         first_frame = output_dir / "question" / "first_frame.png"
         final_frame = output_dir / "question" / "final_frame.png"
