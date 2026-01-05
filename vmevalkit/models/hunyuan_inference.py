@@ -8,6 +8,7 @@ unified inference interface. Supports high-quality image-to-video generation up 
 import os
 import sys
 import subprocess
+import shutil
 import tempfile
 from pathlib import Path
 from typing import Dict, Any, Optional, Union
@@ -188,10 +189,23 @@ class HunyuanVideoService:
             # Find the generated video file in the output directory
             output_video = None
             if success and output_dir.exists():
-                # HunyuanVideo saves videos as .mp4 files in the output directory
-                video_files = list(output_dir.glob("*.mp4"))
+                # HunyuanVideo may create videos in nested directories
+                # Search recursively and flatten to video.mp4
+                video_files = list(output_dir.glob("**/*.mp4"))
                 if video_files:
-                    output_video = str(video_files[0])
+                    source_video = video_files[0]
+                    final_video_path = output_dir / "video.mp4"
+                    
+                    # Move/rename to simple path
+                    if source_video != final_video_path:
+                        shutil.move(str(source_video), str(final_video_path))
+                    
+                    # Clean up any nested directories created by the model
+                    for item in output_dir.iterdir():
+                        if item.is_dir():
+                            shutil.rmtree(item)
+                    
+                    output_video = str(final_video_path)
                 else:
                     success = False
                     error_msg = f"Video generation succeeded but no .mp4 file found in {output_dir}"
@@ -352,6 +366,10 @@ class HunyuanVideoWrapper(ModelWrapper):
         Returns:
             Dictionary with generation results
         """
+        # Sync service output_dir with wrapper output_dir before each generation
+        # This ensures videos are saved to the correct location when wrapper is cached
+        self.hunyuan_service.output_dir = self.output_dir
+        
         return self.hunyuan_service.generate(
             image_path=image_path,
             text_prompt=text_prompt,

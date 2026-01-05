@@ -164,8 +164,7 @@ class VideoCrafterService:
             num_frames = self.temporal_length
         
         # Generate output filename
-        timestamp = int(time.time())
-        output_filename = f"videocrafter_{timestamp}.mp4"
+        output_filename = "video.mp4"
         output_path = self.output_dir / output_filename
         
         # Ensure output directory exists
@@ -400,6 +399,10 @@ class VideoCrafterWrapper(ModelWrapper):
                 - duration_seconds: float (inference time)
                 - metadata: dict (full generation parameters)
         """
+        # Sync service output_dir with wrapper output_dir before each generation
+        # This ensures videos are saved to the correct location when wrapper is cached
+        self.videocrafter_service.output_dir = self.output_dir
+        
         return self.videocrafter_service.generate(
             image_path=image_path,
             text_prompt=text_prompt,

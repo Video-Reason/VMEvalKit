@@ -128,9 +128,9 @@ class LumaInference:
             # Poll for completion
             video_url = self._poll_generation(generation_id)
             
-            # Download video
+            # Download video to standard filename
             if not output_filename:
-                output_filename = f"luma_{generation_id}.mp4"
+                output_filename = "video.mp4"
             
             video_path = self.output_dir / output_filename
             self._download_video(video_url, video_path)
@@ -324,6 +324,10 @@ class LumaWrapper(ModelWrapper):
         Returns:
             Dictionary with generation results
         """
+        # Sync service output_dir with wrapper output_dir before each generation
+        # This ensures videos are saved to the correct location when wrapper is cached
+        self.luma_service.output_dir = self.output_dir
+        
         return self.luma_service.generate(
             image_path=image_path,
             text_prompt=text_prompt,

@@ -210,8 +210,6 @@ def run_single_inference(
     task_id = task["id"]
     image_path = task["first_image_path"]
     prompt = task["prompt"]
-
-    run_id = f"{model_name}_{task_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     
     print(f"\n  🎬 Generating: {task_id} with {model_name}")
     print(f"     Image: {image_path}")
@@ -234,7 +232,6 @@ def run_single_inference(
         model_name=model_name,
         image_path=image_path,
         text_prompt=prompt,
-        run_id=run_id,
         question_data=task,  # Pass full task data for structured output
         **kwargs  # Clean! No API key filtering needed
     )
@@ -348,29 +345,33 @@ def run_pilot_experiment(
                 print(f"    [{job_counter}/{total_jobs}] Processing: {task_id}")
                 
                 # Check if inference folder already exists WITH actual video file
-                # Check inside mirrored domain/task folder for existing runs
-                run_id_pattern = f"{model_name}_{task_id}_*"
+                # Check flat structure: task_folder directly contains video/
                 domain_dir_name = f"{domain}_task"
                 task_folder = model_output_dir / domain_dir_name / task_id
-                existing_dirs = list(task_folder.glob(run_id_pattern))
                 
-                # Verify the run folder actually contains a video file
+                # Check if video exists in flat structure
                 has_valid_output = False
-                if existing_dirs:
-                    for run_dir in existing_dirs:
-                        video_dir = run_dir / "video"
-                        if video_dir.exists():
-                            video_files = list(video_dir.glob("*.mp4")) + list(video_dir.glob("*.webm"))
-                            if video_files:
-                                has_valid_output = True
-                                break
+                video_file = task_folder / "video" / "video.mp4"
+                if video_file.exists():
+                    has_valid_output = True
+                else:
+                    # Backward compatibility: check for old nested structure
+                    if task_folder.exists():
+                        for run_dir in task_folder.iterdir():
+                            if run_dir.is_dir():
+                                video_dir = run_dir / "video"
+                                if video_dir.exists():
+                                    video_files = list(video_dir.glob("*.mp4")) + list(video_dir.glob("*.webm"))
+                                    if video_files:
+                                        has_valid_output = True
+                                        break
                 
                 if skip_existing and has_valid_output:
                     statistics["skipped"] += 1
                     statistics["by_model"][model_name]["skipped"] += 1
                     statistics["by_domain"][domain]["skipped"] += 1
                     model_skipped += 1
-                    print(f"      ⏭️  Skipped (existing output: {existing_dirs[0].name})")
+                    print(f"      ⏭️  Skipped (existing output found)")
                     continue
                 
                 result = run_single_inference(
