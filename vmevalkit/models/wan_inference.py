@@ -5,7 +5,7 @@ from pathlib import Path
 import logging
 from PIL import Image
 from .base import ModelWrapper
-
+import torch
 logger = logging.getLogger(__name__)
 
 
@@ -21,7 +21,8 @@ class WanService:
         self.model_constraints = {
             "max_area": 720 * 1280,
             "fps": 16,
-            "guidance_scale": 5.5
+            "guidance_scale": 5.5,
+            "num_inference_steps": 50,
         }
     
     def _load_model(self):
@@ -51,7 +52,11 @@ class WanService:
             **load_kwargs
         )
         self.pipe.to(self.device)
-        logger.info(f"WAN model loaded on {self.device}")
+        # VAE tiling: decode spatial dimensions in tiles (crucial for high-res)
+        self.pipe.vae.enable_slicing()
+        self.pipe.vae.enable_tiling()
+        logger.info("✓ Enabled VAE tiling for high-resolution decoding")
+        self.pipe.enable_model_cpu_offload()
     
     def _aspect_ratio_resize(self, image: Image.Image, max_area: Optional[int] = None) -> tuple:
         if max_area is None:
@@ -87,6 +92,7 @@ class WanService:
         text_prompt: str = "",
         guidance_scale: Optional[float] = None,
         fps: Optional[int] = None,
+        num_inference_steps: Optional[int] = None,
         output_path: Optional[Path] = None,
         **kwargs
     ) -> Dict[str, Any]:
@@ -97,18 +103,24 @@ class WanService:
         
         guidance_scale = guidance_scale or self.model_constraints["guidance_scale"]
         fps = fps or self.model_constraints["fps"]
+        num_inference_steps = num_inference_steps or self.model_constraints["num_inference_steps"]
         
         logger.info(f"Generating video with prompt: {text_prompt[:80]}...")
-        logger.info(f"Dimensions: {width}x{height}, guidance_scale={guidance_scale}, fps={fps}")
+        logger.info(f"Dimensions: {width}x{height}, guidance_scale={guidance_scale}, fps={fps}, steps={num_inference_steps}")
         
         output = self.pipe(
             image=image,
             prompt=text_prompt,
             height=height,
             width=width,
-            guidance_scale=guidance_scale
+            guidance_scale=guidance_scale,
+            num_inference_steps=num_inference_steps
         )
         frames = output.frames[0]
+        
+        # Clear CUDA cache after generation
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
         
         video_path = None
         if output_path:
@@ -129,6 +141,7 @@ class WanService:
             "status": "success" if video_path else "completed",
             "metadata": {
                 "guidance_scale": guidance_scale,
+                "num_inference_steps": num_inference_steps,
                 "height": height,
                 "width": width,
                 "image_size": image.size
@@ -163,6 +176,7 @@ class WanWrapper(ModelWrapper):
         
         guidance_scale = kwargs.pop("guidance_scale", None)
         fps = kwargs.pop("fps", None)
+        num_inference_steps = kwargs.pop("num_inference_steps", None)
         
         if not output_filename:
             timestamp = int(time.time())
@@ -176,6 +190,7 @@ class WanWrapper(ModelWrapper):
             text_prompt=text_prompt,
             guidance_scale=guidance_scale,
             fps=fps,
+            num_inference_steps=num_inference_steps,
             output_path=output_path,
             **kwargs
         )
