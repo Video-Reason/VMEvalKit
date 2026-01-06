@@ -138,8 +138,7 @@ def run_gpt4o_evaluation(config: EvalConfig):
     
     api_key = config.api_key or os.getenv("OPENAI_API_KEY")
     if not api_key:
-        print("\nError: OPENAI_API_KEY not set in config or environment!")
-        sys.exit(1)
+        raise ValueError("OPENAI_API_KEY not set in config or environment!")
     
     scorer = GPT4OEvaluator(
         inference_dir=config.inference_dir,
@@ -207,8 +206,7 @@ def run_multiframe_evaluation(config: EvalConfig, evaluator_type: str):
     if evaluator_type == "gpt4o":
         api_key = config.api_key or os.getenv("OPENAI_API_KEY")
         if not api_key:
-            print("\nError: OPENAI_API_KEY not set in config or environment!")
-            sys.exit(1)
+            raise ValueError("OPENAI_API_KEY not set in config or environment!")
         base_evaluator = GPT4OEvaluator(
             inference_dir=config.inference_dir,
             eval_output_dir=f"{config.eval_output_dir}/gpt4o",

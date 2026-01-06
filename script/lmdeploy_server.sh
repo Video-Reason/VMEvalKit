@@ -21,7 +21,7 @@ while ! nc -z localhost 23333; do
 done
 echo "Server is ready."
 
-python examples/score_videos.py internvl > $SCORE_LOG_FILE 2>&1
+# python examples/score_videos.py internvl > $SCORE_LOG_FILE 2>&1
 
-echo "Stopping server..."
-kill $SERVER_PID
+# echo "Stopping server..."
+# kill $SERVER_PID
