@@ -77,10 +77,11 @@ class HunyuanVideoService:
             Dictionary with inference results and metadata
         """
         start_time = time.time()
+        timestamp = int(start_time)
         
-        # Generate output directory (HunyuanVideo saves to directory, not file)
-        timestamp = int(time.time())
-        output_dir = self.output_dir / f"hunyuan_{timestamp}"
+        # Use output directory directly (no timestamp subfolder)
+        # The InferenceRunner already creates a properly structured directory
+        output_dir = self.output_dir
         output_dir.mkdir(exist_ok=True, parents=True)
         
         # Determine i2v resolution based on height
