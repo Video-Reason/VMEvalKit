@@ -530,15 +530,30 @@ Available methods:
     if args.evaluator:
         logger.info(f"Overriding evaluator from command line: {args.evaluator}")
         
-        # Map evaluator string to EvalMethod enum
-        evaluator_map = {
-            'gpt4o': EvalMethod.GPT4O,
-            'internvl': EvalMethod.INTERNVL,
-            'qwen': EvalMethod.QWEN,
-        }
+        # Detect sampling strategy from config
+        is_multiframe = 'multiframe' in config_dict
+        
+        # Map evaluator string to appropriate EvalMethod enum
+        if is_multiframe:
+            # Multi-frame evaluation
+            logger.info("Detected multi-frame configuration")
+            evaluator_map = {
+                'gpt4o': EvalMethod.MULTIFRAME_GPT4O,
+                'internvl': EvalMethod.MULTIFRAME_INTERNVL,
+                'qwen': EvalMethod.MULTIFRAME_QWEN,
+            }
+        else:
+            # Single-frame evaluation
+            logger.info("Detected single-frame configuration")
+            evaluator_map = {
+                'gpt4o': EvalMethod.GPT4O,
+                'internvl': EvalMethod.INTERNVL,
+                'qwen': EvalMethod.QWEN,
+            }
         
         if args.evaluator in evaluator_map:
             config.method = evaluator_map[args.evaluator]
+            logger.info(f"Mapped to EvalMethod: {config.method}")
         else:
             print(f"Error: Unknown evaluator: {args.evaluator}")
             print(f"Available: {list(evaluator_map.keys())}")
@@ -552,6 +567,11 @@ Available methods:
         
         if '{method}' in config.eval_output_dir:
             config.eval_output_dir = config.eval_output_dir.replace('{method}', eval_method_name)
+        
+        # For multi-frame, also replace {strategy} if present
+        if is_multiframe and '{strategy}' in config.eval_output_dir:
+            strategy = config_dict.get('multiframe', {}).get('strategy', 'unknown')
+            config.eval_output_dir = config.eval_output_dir.replace('{strategy}', strategy)
     
     # Validate that an evaluator is specified
     if config.method is None:
