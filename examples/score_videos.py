@@ -33,17 +33,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class EvalMethod(str, Enum):
-    """Available evaluation methods."""
-    HUMAN = "human"
-    GPT4O = "gpt4o"
-    INTERNVL = "internvl"
-    QWEN = "qwen"
-    MULTIFRAME_GPT4O = "multiframe_gpt4o"
-    MULTIFRAME_INTERNVL = "multiframe_internvl"
-    MULTIFRAME_QWEN = "multiframe_qwen"
-
-
 class SamplingStrategy(str, Enum):
     """Frame sampling strategies for video evaluation."""
     LAST_FRAME = "last_frame"      # Single-frame evaluation (last frame)
@@ -94,9 +83,6 @@ class EvalConfig(BaseModel):
     # New architecture: separate sampling strategy and evaluator
     sampling_strategy: Optional[SamplingStrategy] = Field(default=None, description="Frame sampling strategy")
     evaluator: Optional[Evaluator] = Field(default=None, description="VLM evaluator to use")
-    
-    # Legacy field for backward compatibility (deprecated)
-    method: Optional[EvalMethod] = Field(default=None, description="[DEPRECATED] Use sampling_strategy + evaluator instead")
     
     inference_dir: str = Field(default="./outputs", description="Path to inference outputs to evaluate")
     eval_output_dir: str = Field(default="./evaluations", description="Path for evaluation results")
@@ -573,23 +559,6 @@ Available methods:
         # Explicitly specified in config
         evaluator = config.evaluator
         logger.info(f"Evaluator from config: {evaluator.value}")
-    elif config.method:
-        # Legacy method field - map to new architecture
-        logger.warning("Using deprecated 'method' field - please update config to use 'evaluator'")
-        legacy_map = {
-            EvalMethod.HUMAN: Evaluator.HUMAN,
-            EvalMethod.GPT4O: Evaluator.GPT4O,
-            EvalMethod.INTERNVL: Evaluator.INTERNVL,
-            EvalMethod.QWEN: Evaluator.QWEN,
-            EvalMethod.MULTIFRAME_GPT4O: Evaluator.GPT4O,
-            EvalMethod.MULTIFRAME_INTERNVL: Evaluator.INTERNVL,
-            EvalMethod.MULTIFRAME_QWEN: Evaluator.QWEN,
-        }
-        evaluator = legacy_map.get(config.method)
-        if not evaluator:
-            print(f"❌ Error: Unknown method: {config.method}")
-            sys.exit(1)
-        logger.info(f"Mapped legacy method to evaluator: {evaluator.value}")
     else:
         print("❌ Error: No evaluator specified!")
         print("   Please specify 'evaluator' in config file OR use --evaluator flag")
