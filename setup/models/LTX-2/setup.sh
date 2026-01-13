@@ -22,11 +22,17 @@ fi
 
 cd "${LTX2_DIR}"
 
-# Install dependencies using uv sync
+# Install dependencies using pip
 print_info "Installing dependencies..."
-uv sync
+pip install -q torch~=2.7 torchaudio einops numpy transformers safetensors accelerate "scipy>=1.14"
+pip install -q av tqdm pillow
+pip install -q xformers
+pip install -q python-dotenv
+# Install local packages in editable mode
+pip install -q -e "${LTX2_DIR}/packages/ltx-core"
+pip install -q -e "${LTX2_DIR}/packages/ltx-pipelines"
 
-source .venv/bin/activate
+
 
 print_section "Checkpoints"
 cd "${LTX2_DIR}"
