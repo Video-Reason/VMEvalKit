@@ -38,8 +38,10 @@ class EvalMethod(str, Enum):
     HUMAN = "human"
     GPT4O = "gpt4o"
     INTERNVL = "internvl"
+    QWEN = "qwen"
     MULTIFRAME_GPT4O = "multiframe_gpt4o"
     MULTIFRAME_INTERNVL = "multiframe_internvl"
+    MULTIFRAME_QWEN = "multiframe_qwen"
 
 
 class SamplingStrategy(str, Enum):
@@ -80,7 +82,7 @@ class MultiFrameConfig(BaseModel):
 
 class EvalConfig(BaseModel):
     """Main evaluation configuration."""
-    method: EvalMethod = Field(..., description="Evaluation method to use")
+    method: Optional[EvalMethod] = Field(default=None, description="Evaluation method (can be overridden by --evaluator)")
     inference_dir: str = Field(default="./outputs", description="Path to inference outputs to evaluate")
     eval_output_dir: str = Field(default="./evaluations", description="Path for evaluation results")
     
@@ -470,6 +472,13 @@ Available methods:
         help='Path to evaluation config JSON file'
     )
     parser.add_argument(
+        '--evaluator',
+        type=str,
+        default=None,
+        choices=['gpt4o', 'internvl', 'qwen'],
+        help='VLM evaluator to use (overrides config file if specified)'
+    )
+    parser.add_argument(
         '--test-multiframe',
         action='store_true',
         help='Test multi-frame pipeline without API calls'
@@ -517,6 +526,40 @@ Available methods:
     
     config = EvalConfig(**config_dict)
     
+    # Override evaluator from command line if specified
+    if args.evaluator:
+        logger.info(f"Overriding evaluator from command line: {args.evaluator}")
+        
+        # Map evaluator string to EvalMethod enum
+        evaluator_map = {
+            'gpt4o': EvalMethod.GPT4O,
+            'internvl': EvalMethod.INTERNVL,
+            'qwen': EvalMethod.QWEN,
+        }
+        
+        if args.evaluator in evaluator_map:
+            config.method = evaluator_map[args.evaluator]
+        else:
+            print(f"Error: Unknown evaluator: {args.evaluator}")
+            print(f"Available: {list(evaluator_map.keys())}")
+            sys.exit(1)
+        
+        # Resolve dynamic paths (if config file uses placeholders)
+        eval_method_name = config_path.stem  # e.g., 'last_frame'
+        
+        if '{evaluator}' in config.eval_output_dir:
+            config.eval_output_dir = config.eval_output_dir.replace('{evaluator}', args.evaluator)
+        
+        if '{method}' in config.eval_output_dir:
+            config.eval_output_dir = config.eval_output_dir.replace('{method}', eval_method_name)
+    
+    # Validate that an evaluator is specified
+    if config.method is None:
+        print("❌ Error: No evaluator specified!")
+        print("   Please specify 'method' in config file OR use --evaluator flag")
+        print("   Example: python score_videos.py --eval-config config.json --evaluator gpt4o")
+        sys.exit(1)
+    
     # Check inference directory
     inference_path = Path(config.inference_dir)
     if not inference_path.exists():
@@ -531,10 +574,18 @@ Available methods:
         run_gpt4o_evaluation(config)
     elif config.method == EvalMethod.INTERNVL:
         run_internvl_evaluation(config)
+    elif config.method == EvalMethod.QWEN:
+        print("❌ Error: Qwen evaluator not yet implemented")
+        print("   Coming soon!")
+        sys.exit(1)
     elif config.method == EvalMethod.MULTIFRAME_GPT4O:
         run_multiframe_evaluation(config, "gpt4o")
     elif config.method == EvalMethod.MULTIFRAME_INTERNVL:
         run_multiframe_evaluation(config, "internvl")
+    elif config.method == EvalMethod.MULTIFRAME_QWEN:
+        print("❌ Error: Multi-frame Qwen evaluator not yet implemented")
+        print("   Coming soon!")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
